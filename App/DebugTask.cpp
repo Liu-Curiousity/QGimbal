@@ -18,6 +18,7 @@ void DebugTask(void *argument) {
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (huart->Instance == huart6.Instance) {
         if (Size == 13) {
+            // 右下为正方向
             offset_x = std::strtof(reinterpret_cast<const char *>(UART6_RxBuffer), nullptr);
             offset_y = std::strtof(reinterpret_cast<const char *>(UART6_RxBuffer + 7), nullptr);
         }
