@@ -3,8 +3,6 @@
 //
 #include "task_public.h"
 #include "main.h"
-#include "tim.h"
-#include "usart.h"
 #include "cmsis_os.h"
 #include "QD4310.h"
 #include "PID.h"
@@ -14,7 +12,6 @@ constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: 
 constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
 
 extern float INS_angle[3];       // yaw,pitch,roll
-extern float offset_x, offset_y; // 视觉偏移量
 
 QD4310 YawMotor(&hcan1, 0x00);   // 云台偏航电机
 QD4310 PitchMotor(&hcan1, 0x01); // 云台俯仰电机
@@ -63,7 +60,6 @@ void StartGimbalTask(void *argument) {
     osDelay(pdMS_TO_TICKS(2000));
 
     HAL_GPIO_WritePin(Laser_En_GPIO_Port,Laser_En_Pin, GPIO_PIN_SET); // 使能激光
-    HAL_TIM_Base_Start_IT(&htim13);                                   // 开启视觉闭环定时器
     gimbal.enable();
     osDelay(50);
     gimbal.enable_stability();
@@ -103,12 +99,5 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
                 PitchMotor.update(rx_data);
             }
         }
-    }
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim == &htim13) {
-        //100Hz
-        gimbal.Ctrl(vision_x_pid.calc(offset_x), vision_y_pid.calc(offset_y));
     }
 }
