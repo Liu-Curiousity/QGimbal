@@ -73,7 +73,14 @@ osThreadId_t TransmitTaskHandle;
 const osThreadAttr_t TransmitTask_attributes = {
   .name = "TransmitTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for ReceiveTask */
+osThreadId_t ReceiveTaskHandle;
+const osThreadAttr_t ReceiveTask_attributes = {
+  .name = "ReceiveTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -85,6 +92,7 @@ void StartDebugTask(void *argument);
 extern void InsTask(void *argument);
 extern void StartGimbalTask(void *argument);
 extern void StartTransmitTask(void *argument);
+extern void StartReceiveTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -126,6 +134,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of TransmitTask */
   TransmitTaskHandle = osThreadNew(StartTransmitTask, NULL, &TransmitTask_attributes);
+
+  /* creation of ReceiveTask */
+  ReceiveTaskHandle = osThreadNew(StartReceiveTask, NULL, &ReceiveTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

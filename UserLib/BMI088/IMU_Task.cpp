@@ -21,6 +21,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 
+#include <numbers>
 #include "IMU_Task.h"
 #include "task_public.h"
 #include "cmsis_os.h"
@@ -28,7 +29,6 @@
 #include "bsp_spi.h"
 #include "BMI088Driver/BMI088driver.h"
 #include "MahonyAHRS.h"
-#include "pid.h"
 
 /**
   * @brief          open the SPI DMA accord to the value of imu_update_flag

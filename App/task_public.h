@@ -25,11 +25,13 @@ extern "C" {
 void StartDebugTask(void *argument);
 void StartGimbalTask(void *argument);
 void StartTransmitTask(void *argument);
+void StartReceiveTask(void *argument);
 void InsTask(void *argument);
 
 extern osThreadId_t DebugTaskHandle;
 extern osThreadId_t GimbalTaskHandle;
 extern osThreadId_t TransmitTaskHandle;
+extern osThreadId_t ReceiveTaskHandle;
 extern osThreadId_t InsHandle;
 /**======================================================================================**/
 
