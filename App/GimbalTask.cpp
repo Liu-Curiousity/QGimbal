@@ -10,8 +10,8 @@
 #include "PID.h"
 #include "Gimbal.h"
 
-constexpr static float yaw_center = 0.0f;    // 云台偏航中心位置,单位: rad
-constexpr static float pitch_center = 0.00f; // 云台俯仰中心位置,单位: rad
+constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: rad
+constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
 
 extern float INS_angle[3];       // yaw,pitch,roll
 extern float offset_x, offset_y; // 视觉偏移量

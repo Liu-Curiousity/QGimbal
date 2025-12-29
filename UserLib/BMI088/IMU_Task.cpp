@@ -25,21 +25,10 @@
 #include "task_public.h"
 #include "cmsis_os.h"
 #include "task.h"
-#include "bsp_imu_pwm.h"
 #include "bsp_spi.h"
 #include "BMI088Driver/BMI088driver.h"
 #include "MahonyAHRS.h"
 #include "pid.h"
-
-// TODO: 温控无法使用
-#define IMU_temp_PWM(pwm)  imu_pwm_set(pwm) // pwm给定
-
-/**
-  * @brief          control the temperature of bmi088
-  * @param[in]      temp: the temperature of bmi088
-  * @retval         none
-  */
-static void imu_temp_control(float temp);
 
 /**
   * @brief          open the SPI DMA accord to the value of imu_update_flag
@@ -69,9 +58,6 @@ volatile uint8_t imu_start_dma_flag = 0;
 
 bmi088_real_data_t bmi088_real_data;
 
-static uint8_t first_temperate;
-PID_struct_t imu_temp_pid;
-
 float INS_angle[3]; //euler angle, unit rad.
 
 /**
@@ -86,8 +72,6 @@ void InsTask(void *argument) {
         osDelay(100);
     }
 
-    PID_init(&imu_temp_pid,TEMPERATURE_PID_KP, TEMPERATURE_PID_KI, TEMPERATURE_PID_KD, TEMPERATURE_PID_MAX_OUT,
-             TEMPERATURE_PID_MAX_IOUT);
     MahonyAHRS AHRS{1000};
 
     SPI1_DMA_init();
@@ -111,7 +95,6 @@ void InsTask(void *argument) {
             accel_temp_update_flag &= ~(1 << IMU_UPDATE_SHFITS);
             BMI088_temperature_read_over(temp_dma_rx_buf + BMI088_ACCEL_RX_BUF_DATA_OFFSET,
                                          &bmi088_real_data.temp);
-            imu_temp_control(bmi088_real_data.temp);
         }
 
         AHRS.update(bmi088_real_data.gyro[0], bmi088_real_data.gyro[1], bmi088_real_data.gyro[2],
@@ -126,38 +109,6 @@ void get_angle(float q[4], float *yaw, float *pitch, float *roll) {
     *pitch = asinf(-2.0f * (q[1] * q[3] - q[0] * q[2]));
     *roll = atan2f(2.0f * (q[0] * q[1] + q[2] * q[3]), 2.0f * (q[0] * q[0] + q[3] * q[3]) - 1.0f);
 }
-
-/**
-  * @brief          control the temperature of bmi088
-  * @param[in]      temp: the temperature of bmi088
-  * @retval         none
-  */
-static void imu_temp_control(float temp) {
-    uint16_t tempPWM;
-    static uint8_t temp_constant_time = 0;
-    if (first_temperate) {
-        PID_Calc_Speed(&imu_temp_pid, temp, 45.0f);
-        if (imu_temp_pid.output < 0.0f) {
-            imu_temp_pid.output = 0.0f;
-        }
-        tempPWM = (uint16_t)imu_temp_pid.output;
-        IMU_temp_PWM(tempPWM);
-    } else {
-        //in beginning, max power
-        if (temp > 45.0f) {
-            temp_constant_time++;
-            if (temp_constant_time > 200) {
-                //达到设置温度，将积分项设置为一半最大功率，加速收敛
-                //
-                first_temperate = 1;
-                imu_temp_pid.i_out = MPU6500_TEMP_PWM_MAX / 2.0f;
-            }
-        }
-
-        IMU_temp_PWM(MPU6500_TEMP_PWM_MAX - 1);
-    }
-}
-
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == INT1_ACCEL_Pin) {

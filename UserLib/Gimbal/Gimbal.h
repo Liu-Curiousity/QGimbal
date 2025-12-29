@@ -25,8 +25,8 @@ public:
 
     bool enabled{false};
     bool stability_enabled{false};
-    float yaw_imu_angle{0};      // in rad
-    float pitch_imu_angle{0};    // in rad
+    float yaw_imu_angle{0};   // in rad
+    float pitch_imu_angle{0}; // in rad
 
     void enable() {
         yawMotor.enable();
@@ -65,11 +65,12 @@ public:
 
     /**
      * @param yaw_imu_angle_ imu测量的偏航角度,单位:rad
+     * @param pitch_imu_angle_ imu测量的俯仰角度,单位:rad
      */
     void Ctrl_ISR(const float yaw_imu_angle_, const float pitch_imu_angle_) {
         static float speed_to_ctrl = 0;
 
-        if (!(enabled || stability_enabled)) return;
+        if (!enabled) return;
 
         yaw_imu_angle = yaw_imu_angle_;
         pitch_imu_angle = pitch_imu_angle_ + pitchMotor.angle;
