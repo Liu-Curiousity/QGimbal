@@ -39,6 +39,15 @@ static void imu_cmd_spi_dma(void);
 
 void get_angle(float quat[4], float *yaw, float *pitch, float *roll);
 
+// TODO: 临时解决方案
+static float wrap(float value, const float min, const float max) {
+    value = std::fmod(value - min, max - min);
+    return value < 0 ? value + max : value + min;
+}
+
+float yaw_bias = 0.0f;
+float delta_yaw_bias = -4.9e-7f;
+
 extern SPI_HandleTypeDef hspi1;
 
 uint8_t gyro_dma_rx_buf[SPI_DMA_GYRO_LENGHT];
@@ -100,6 +109,8 @@ void InsTask(void *argument) {
         AHRS.update(bmi088_real_data.gyro[0], bmi088_real_data.gyro[1], bmi088_real_data.gyro[2],
                     bmi088_real_data.accel[0], bmi088_real_data.accel[1], bmi088_real_data.accel[2]);
         get_angle(AHRS.q.data(), INS_angle, INS_angle + 1, INS_angle + 2);
+        yaw_bias += delta_yaw_bias;
+        INS_angle[0] = wrap(INS_angle[0] - yaw_bias, -std::numbers::pi_v<float>, std::numbers::pi_v<float>);
         xTaskNotifyGive((TaskHandle_t)GimbalTaskHandle);
     }
 }
