@@ -24,10 +24,12 @@ extern "C" {
 //任务函数必须在此声明(在extern "C"块中),否则在app_freertos.c中找不到该函数符号
 void StartDebugTask(void *argument);
 void StartGimbalTask(void *argument);
+void StartTransmitTask(void *argument);
 void InsTask(void *argument);
 
 extern osThreadId_t DebugTaskHandle;
 extern osThreadId_t GimbalTaskHandle;
+extern osThreadId_t TransmitTaskHandle;
 extern osThreadId_t InsHandle;
 /**======================================================================================**/
 

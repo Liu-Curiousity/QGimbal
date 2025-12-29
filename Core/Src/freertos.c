@@ -68,6 +68,13 @@ const osThreadAttr_t GimbalTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for TransmitTask */
+osThreadId_t TransmitTaskHandle;
+const osThreadAttr_t TransmitTask_attributes = {
+  .name = "TransmitTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -77,6 +84,7 @@ const osThreadAttr_t GimbalTask_attributes = {
 void StartDebugTask(void *argument);
 extern void InsTask(void *argument);
 extern void StartGimbalTask(void *argument);
+extern void StartTransmitTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -115,6 +123,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of GimbalTask */
   GimbalTaskHandle = osThreadNew(StartGimbalTask, NULL, &GimbalTask_attributes);
+
+  /* creation of TransmitTask */
+  TransmitTaskHandle = osThreadNew(StartTransmitTask, NULL, &TransmitTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

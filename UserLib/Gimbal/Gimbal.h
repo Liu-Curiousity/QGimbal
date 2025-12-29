@@ -23,9 +23,12 @@ public:
         yawMotor(yawMotor), pitchMotor(pitchMotor), PID_yaw_imu(PID_yaw_imu), PID_pitch_imu(PID_pitch_imu), Ts(ctrl_ts),
         yaw_center(yaw_center), pitch_center(pitch_center) {}
 
+    bool enabled{false};
+    bool stability_enabled{false};
+    float yaw_imu_angle{0};      // in rad
+    float pitch_imu_angle{0};    // in rad
+
     void enable() {
-        PID_yaw_imu.target = yaw_imu_angle;
-        PID_pitch_imu.target = pitch_imu_angle + pitchMotor.angle / std::numbers::pi_v<float> * 180;
         yawMotor.enable();
         pitchMotor.enable();
         enabled = true;
@@ -36,7 +39,19 @@ public:
         pitchMotor.setCurrent(0);
         yawMotor.disable();
         pitchMotor.disable();
+        disable_stability();
         enabled = false;
+    }
+
+    void enable_stability() {
+        if (!enabled) return;
+        PID_yaw_imu.target = yaw_imu_angle;
+        PID_pitch_imu.target = pitch_imu_angle + pitchMotor.angle;
+        stability_enabled = true;
+    }
+
+    void disable_stability() {
+        stability_enabled = false;
     }
 
     /**
@@ -49,58 +64,56 @@ public:
     }
 
     /**
-     * @param yaw_imu_angle_ imu测量的偏航角度,单位:度
+     * @param yaw_imu_angle_ imu测量的偏航角度,单位:rad
      */
     void Ctrl_ISR(const float yaw_imu_angle_, const float pitch_imu_angle_) {
         static float speed_to_ctrl = 0;
+
+        if (!(enabled || stability_enabled)) return;
+
         yaw_imu_angle = yaw_imu_angle_;
-        pitch_imu_angle = pitch_imu_angle_ + pitchMotor.angle / std::numbers::pi_v<float> * 180;
-        if (!enabled) return;
-
-        PID_yaw_imu.target += target_yaw_speed * Ts * 360 / 60;
-        if (PID_yaw_imu.target > 360.0f) {
-            PID_yaw_imu.target -= 360.0f;
-        } else if (PID_yaw_imu.target < 0.0f) {
-            PID_yaw_imu.target += 360.0f;
-        }
-
-        // 过零点处理
-        if (PID_yaw_imu.target - yaw_imu_angle > 180.0f) {
-            speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle + 360.0f);
-        } else if (PID_yaw_imu.target - yaw_imu_angle < -180.0f) {
-            speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle - 360.0f);
+        pitch_imu_angle = pitch_imu_angle_ + pitchMotor.angle;
+        if (!stability_enabled) {
+            yawMotor.setSpeed(target_yaw_speed);
+            /*==============pitch轴限位===============*/
+            if ((target_pitch_speed > 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
+                                                std::numbers::pi_v<float>) > pitch_max) ||
+                (target_pitch_speed < 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
+                                                std::numbers::pi_v<float>) < -pitch_max))
+                pitchMotor.setSpeed(0);
+            else pitchMotor.setSpeed(target_pitch_speed);
         } else {
-            speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle);
+            PID_yaw_imu.target += target_yaw_speed * Ts * 2 * std::numbers::pi_v<float> / 60;
+            PID_yaw_imu.target = wrap(PID_yaw_imu.target, 0, 2 * std::numbers::pi_v<float>);
+            // 过零点处理
+            if (PID_yaw_imu.target - yaw_imu_angle > std::numbers::pi_v<float>) {
+                speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle + 2 * std::numbers::pi_v<float>);
+            } else if (PID_yaw_imu.target - yaw_imu_angle < -std::numbers::pi_v<float>) {
+                speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle - 2 * std::numbers::pi_v<float>);
+            } else {
+                speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle);
+            }
+
+            yawMotor.setCurrent(speed_to_ctrl);
+            /*==============pitch轴限位===============*/
+            if ((target_pitch_speed > 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
+                                                std::numbers::pi_v<float>) > pitch_max) || (
+                    target_pitch_speed < 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
+                                                   std::numbers::pi_v<float>) < -pitch_max))
+                PID_pitch_imu.target += 0;
+            else
+                PID_pitch_imu.target += target_pitch_speed * Ts * 2 * std::numbers::pi_v<float> / 60;
+            PID_pitch_imu.target = wrap(PID_pitch_imu.target, 0, 2 * std::numbers::pi_v<float>);
+            // 过零点处理
+            if (PID_pitch_imu.target - pitch_imu_angle > std::numbers::pi_v<float>) {
+                speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle + 2 * std::numbers::pi_v<float>);
+            } else if (PID_pitch_imu.target - pitch_imu_angle < -std::numbers::pi_v<float>) {
+                speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle - 2 * std::numbers::pi_v<float>);
+            } else {
+                speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle);
+            }
+            pitchMotor.setCurrent(speed_to_ctrl);
         }
-
-        yawMotor.setCurrent(speed_to_ctrl);
-        // /*==============pitch轴限位===============*/
-        // if ((target_pitch_speed > 0 && pitchMotor.angle > pitch_center + 0.2f) ||
-        //     (target_pitch_speed < 0 && pitchMotor.angle < pitch_center - 0.2f))
-        //     pitchMotor.setSpeed(0);
-        // else pitchMotor.setSpeed(target_pitch_speed);
-
-        if ((target_pitch_speed > 0 && pitchMotor.angle > pitch_center + 0.2f) ||
-            (target_pitch_speed < 0 && pitchMotor.angle < pitch_center - 0.2f))
-            PID_pitch_imu.target += 0;
-        else
-            PID_pitch_imu.target += target_pitch_speed * Ts * 360 / 60;
-        if (PID_pitch_imu.target > 360.0f) {
-            PID_pitch_imu.target -= 360.0f;
-        } else if (PID_pitch_imu.target < 0.0f) {
-            PID_pitch_imu.target += 360.0f;
-        }
-
-        // 过零点处理
-        if (PID_pitch_imu.target - pitch_imu_angle > 180.0f) {
-            speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle + 360.0f);
-        } else if (PID_pitch_imu.target - pitch_imu_angle < -180.0f) {
-            speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle - 360.0f);
-        } else {
-            speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle);
-        }
-
-        pitchMotor.setCurrent(speed_to_ctrl);
     }
 
 private:
@@ -109,15 +122,19 @@ private:
     PID PID_yaw_imu;
     PID PID_pitch_imu;
 
-    bool enabled{false};
+    static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
+
     float Ts;
-    float yaw_imu_angle{0};
-    float pitch_imu_angle{0};
-    float target_yaw_speed{0};
-    float target_pitch_speed{0};
+    float target_yaw_speed{0};   // in rpm
+    float target_pitch_speed{0}; // in rpm
 
     float yaw_center;
     float pitch_center;
+
+    static float wrap(float value, const float min, const float max) {
+        value = std::fmod(value - min, max - min);
+        return value < 0 ? value + max : value + min;
+    }
 };
 
 #endif //QGIMBAL_GIMBAL_H

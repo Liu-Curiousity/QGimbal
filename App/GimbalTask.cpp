@@ -4,6 +4,7 @@
 #include "task_public.h"
 #include "main.h"
 #include "tim.h"
+#include "usart.h"
 #include "cmsis_os.h"
 #include "QD4310.h"
 #include "PID.h"
@@ -23,14 +24,14 @@ Gimbal gimbal(
     yaw_center, pitch_center,
     PID{
         PID::PID_type::position_type,
-        0.1f, 0.002f, 2.1f,
-        100, -100,
+        5.7f, 0.11f, 120.0f,
+        1.8f, -1.8f,
         1, -1
     },
     PID{
         PID::PID_type::position_type,
-        0.08f, 0.003f, 0.5f,
-        100, -100,
+        4.6f, 0.17f, 30.0f,
+        1.8f, -1.8f,
         1, -1
     },
     0.001f);
@@ -55,20 +56,21 @@ void StartGimbalTask(void *argument) {
     YawMotor.enable();
     PitchMotor.enable();
 
-    // 上电复位云台角度，同时等待陀螺仪初始化完成
-    for (int i = 0; i < 20; i++) {
-        osDelay(pdMS_TO_TICKS(50));
-        YawMotor.setAngle(yaw_center);
-        PitchMotor.setAngle(pitch_center);
-    }
+    // 上电复位云台角度
+    YawMotor.setAngle(yaw_center);
+    PitchMotor.setAngle(pitch_center);
+    // 等待陀螺仪初始化完成
+    osDelay(pdMS_TO_TICKS(2000));
 
     HAL_GPIO_WritePin(Laser_En_GPIO_Port,Laser_En_Pin, GPIO_PIN_SET); // 使能激光
     HAL_TIM_Base_Start_IT(&htim13);                                   // 开启视觉闭环定时器
     gimbal.enable();
+    osDelay(50);
+    gimbal.enable_stability();
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
-        gimbal.Ctrl_ISR(INS_angle[0] / std::numbers::pi_v<float> * 180,
-                        INS_angle[1] / std::numbers::pi_v<float> * 180);
+        gimbal.Ctrl_ISR(INS_angle[0], INS_angle[1]);
+        xTaskNotifyGive((TaskHandle_t)TransmitTaskHandle); // 通知发送任务发送数据
     }
 }
 
@@ -106,7 +108,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim == &htim13) {
-        //33.3Hz
+        //100Hz
         gimbal.Ctrl(vision_x_pid.calc(offset_x), vision_y_pid.calc(offset_y));
     }
 }

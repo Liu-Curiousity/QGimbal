@@ -54,6 +54,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user sources here
         App/DebugTask.cpp
         App/GimbalTask.cpp
+        App/TransmitTask.cpp
         UserLib/QD4310/QD4310.cpp
         UserLib/Gimbal/Gimbal.cpp
 )
