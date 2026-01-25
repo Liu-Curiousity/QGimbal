@@ -19,6 +19,11 @@ public:
      */
     void setAngle(float _angle);
     /**
+     * @brief 设置电机角度
+     * @param _step_angle 设置的角度,[-2pi,2pi]
+     */
+    void setStepAngle(float _step_angle);
+    /**
      * @brief 设置电机转速
      * @param _speed 设置的转速,[-1000,1000]
      */
@@ -35,7 +40,7 @@ public:
     void setCurrent(float _current);
 
     bool enabled{};
-    uint8_t id;
+    uint8_t id;      // CAN id
     float speed{};   // in rpm
     float angle{};   // in rad
     float current{}; // in A
@@ -47,7 +52,8 @@ private:
         CURRENT = 0x03,
         SPEED = 0x04,
         ANGLE = 0x05,
-        LOW_SPEED = 0x06
+        LOW_SPEED = 0x06,
+        STEP_ANGLE = 0x07
     };
 
     CAN_HandleTypeDef *hcan{};

@@ -21,7 +21,7 @@ Gimbal gimbal(
     yaw_center, pitch_center,
     PID{
         PID::PID_type::position_type,
-        5.7f, 0.11f, 120.0f,
+        5.0f, 0.1f, 110.0f,
         1.8f, -1.8f,
         1, -1
     },
