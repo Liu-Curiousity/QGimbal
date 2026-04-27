@@ -122,7 +122,7 @@
 /**
  * @brief 历史命令记录数量
  */
-#define     SHELL_HISTORY_MAX_NUMBER    5
+#define     SHELL_HISTORY_MAX_NUMBER    8
 #endif /** SHELL_HISTORY_MAX_NUMBER */
 
 #ifndef SHELL_DOUBLE_CLICK_TIME

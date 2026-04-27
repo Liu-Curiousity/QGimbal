@@ -51,12 +51,12 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user defined library search paths
 )
 
+file(GLOB_RECURSE APPLICATION_SOURCES "./Applications/*.c" "./Applications/*.cpp")
+
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user sources here
-        App/DebugTask.cpp
-        App/GimbalTask.cpp
-        App/TransmitTask.cpp
+        ${APPLICATION_SOURCES}
         UserLib/QD4310/QD4310.cpp
         UserLib/Gimbal/Gimbal.cpp
 )
@@ -64,7 +64,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user defined include paths
-        App
+        Applications
         UserLib/PID
         UserLib/QD4310
         UserLib/Gimbal

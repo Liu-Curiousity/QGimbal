@@ -32,20 +32,8 @@ Gimbal gimbal(
         1.8f, -1.8f,
         1, -1
     },
-    0.001f);
-
-PID vision_x_pid{
-    PID::PID_type::position_type,
-    60.0f, 0.0f, 30.0f,
-    10, -10,
-    10, -10
-};
-PID vision_y_pid{
-    PID::PID_type::position_type,
-    -25.0f, 0.0f, -35.0f,
-    10, -10,
-    5, -5
-};
+    0.001f
+);
 
 void CAN_InterfaceInit();
 

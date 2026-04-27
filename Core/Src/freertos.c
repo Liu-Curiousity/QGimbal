@@ -82,6 +82,13 @@ const osThreadAttr_t ReceiveTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for StartShell */
+osThreadId_t StartShellHandle;
+const osThreadAttr_t StartShell_attributes = {
+  .name = "StartShell",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -93,6 +100,7 @@ extern void InsTask(void *argument);
 extern void StartGimbalTask(void *argument);
 extern void StartTransmitTask(void *argument);
 extern void StartReceiveTask(void *argument);
+extern void StartStartShell(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -138,6 +146,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of ReceiveTask */
   ReceiveTaskHandle = osThreadNew(StartReceiveTask, NULL, &ReceiveTask_attributes);
+
+  /* creation of StartShell */
+  StartShellHandle = osThreadNew(StartStartShell, NULL, &StartShell_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

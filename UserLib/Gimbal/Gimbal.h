@@ -106,9 +106,9 @@ public:
             yawMotor.setCurrent(speed_to_ctrl);
             /*==============pitch轴限位===============*/
             if ((target_pitch_speed > 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
-                                                std::numbers::pi_v<float>) > pitch_max) || (
-                    target_pitch_speed < 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
-                                                   std::numbers::pi_v<float>) < -pitch_max))
+                                                std::numbers::pi_v<float>) > pitch_max) ||
+                (target_pitch_speed < 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
+                                                std::numbers::pi_v<float>) < -pitch_max))
                 PID_pitch_imu.target += 0;
             else
                 PID_pitch_imu.target += target_pitch_speed * Ts * 2 * std::numbers::pi_v<float> / 60;
