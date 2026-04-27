@@ -68,6 +68,7 @@ void StartReceiveTask(void *argument) {
     receive_package_queue = xQueueCreate(5, sizeof(ReceivePackage));
     ReceivePackage receive_package{};
     HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(ReceivePackage));
+    __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
     while (true) {
         xQueueReceive(receive_package_queue, &receive_package, portMAX_DELAY);
         // 校验和
@@ -97,11 +98,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (huart->Instance == huart6.Instance) {
         if (Size == sizeof(ReceivePackage)) {
             xQueueSendToBackFromISR(receive_package_queue, UART6_RxBuffer, &xHigherPriorityTaskWoken);
-            if (xHigherPriorityTaskWoken) {
-                taskYIELD();
-            }
-            std::fill_n(UART6_RxBuffer, sizeof(UART6_RxBuffer), 0);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
         }
+        std::fill_n(UART6_RxBuffer, sizeof(UART6_RxBuffer), 0);
         HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(ReceivePackage));
+        __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
     }
 }
