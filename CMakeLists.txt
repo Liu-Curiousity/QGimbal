@@ -43,6 +43,7 @@ add_subdirectory(cmake/stm32cubemx)
 
 # Add user libraries
 add_subdirectory(UserLib/BMI088)
+add_subdirectory(UserLib/retarget)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -79,7 +80,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
         # Add user defined libraries
         bmi088
+        retarget
 )
+
+# 查找 UserLib 下的所有源文件
+file(GLOB_RECURSE USERLIB_SOURCES "UserLib/*.*" "Applications/*.*" "BSP/*.*")
+
+# 为每个 UserLib 源文件添加编译选项 -include public.h
+foreach (SRC ${USERLIB_SOURCES})
+    set_source_files_properties(${SRC} PROPERTIES COMPILE_OPTIONS "-include;sys_public.h")
+endforeach ()
 
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.bin
