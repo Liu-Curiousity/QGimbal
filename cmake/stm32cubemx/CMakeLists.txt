@@ -11,17 +11,25 @@ set(MX_Defines_Syms
 # STM32CubeMX generated include paths
 set(MX_Include_Dirs
     ${CMAKE_SOURCE_DIR}/Core/Inc
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/Target
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Inc
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/Third_Party/FreeRTOS/Source/include
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/CMSIS/Include
 )
 
 # STM32CubeMX generated application sources
 set(MX_Application_Src
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/Target/usbd_conf.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App/usb_device.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App/usbd_desc.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App/usbd_cdc_if.c
     ${CMAKE_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_SOURCE_DIR}/Core/Src/freertos.c
@@ -39,7 +47,9 @@ set(MX_Application_Src
 # STM32 HAL/LL Drivers
 set(STM32_Drivers_Src
     ${CMAKE_SOURCE_DIR}/Core/Src/system_stm32f4xx.c
-    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
@@ -53,6 +63,7 @@ set(STM32_Drivers_Src
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
 )
@@ -60,6 +71,12 @@ set(STM32_Drivers_Src
 # Drivers Midllewares
 
 
+set(USB_Device_Library_Src
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+    C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+)
 set(FreeRTOS_Src
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/Third_Party/FreeRTOS/Source/croutine.c
     C:/Users/26757/STM32Cube/Repository/STM32Cube_FW_F4_V1.28.3/Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
@@ -80,7 +97,7 @@ set(MX_LINK_DIRS
 # Project static libraries
 set(MX_LINK_LIBS 
     STM32_Drivers
-    FreeRTOS	
+    USB_Device_Library	FreeRTOS	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
@@ -92,6 +109,11 @@ add_library(STM32_Drivers OBJECT)
 target_sources(STM32_Drivers PRIVATE ${STM32_Drivers_Src})
 target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
 
+
+# Create USB_Device_Library static library
+add_library(USB_Device_Library OBJECT)
+target_sources(USB_Device_Library PRIVATE ${USB_Device_Library_Src})
+target_link_libraries(USB_Device_Library PUBLIC stm32cubemx)
 
 # Create FreeRTOS static library
 add_library(FreeRTOS OBJECT)
