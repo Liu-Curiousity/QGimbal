@@ -2,7 +2,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-void DebugTask(void *argument) {
+void StartDebugTask(void *argument) {
     while (true) {
         osDelay(pdMS_TO_TICKS(2000));
     }

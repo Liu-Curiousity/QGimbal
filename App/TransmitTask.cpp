@@ -105,3 +105,42 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
         __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
     }
 }
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    if (huart == &huart6) {
+        __HAL_UNLOCK(huart);
+        HAL_UARTEx_ReceiveToIdle_DMA(huart, UART6_RxBuffer, sizeof(UART6_RxBuffer));
+        __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
+    }
+}
+
+/**
+ * @brief 反转字节(按bit反转)
+ * */
+static uint8_t ReverseBits(uint8_t data) {
+    data = ((data & 0x55) << 1) | ((data & 0xAA) >> 1);
+    data = ((data & 0x33) << 2) | ((data & 0xCC) >> 2);
+    data = ((data & 0x0F) << 4) | ((data & 0xF0) >> 4);
+    return data;
+}
+
+uint8_t CRC8(const uint8_t *data, uint32_t len, uint8_t polynomial, uint8_t init,
+             uint8_t xor_out, bool input_invert, bool output_invert) {
+    /**1.校验参数**/
+    assert_param(data != nullptr);
+    assert_param(len > 0);
+    /**2.变量定义**/
+    uint8_t crc = init;
+    /**3.计算**/
+    do {
+        crc ^= input_invert ? ReverseBits(*(data++)) : *(data++);
+        for (uint8_t i = 0; i < 8; ++i) {
+            if (crc & 0x80) {
+                crc = (crc << 1) ^ polynomial;
+            } else {
+                crc <<= 1;
+            }
+        }
+    } while (--len);
+    return output_invert ? ReverseBits(crc ^ xor_out) : (crc ^ xor_out);
+}

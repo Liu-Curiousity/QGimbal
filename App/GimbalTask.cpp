@@ -4,6 +4,7 @@
 #include "task_public.h"
 #include "main.h"
 #include "cmsis_os.h"
+#include "can.h"
 #include "QD4310.h"
 #include "PID.h"
 #include "Gimbal.h"
@@ -11,7 +12,7 @@
 constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: rad
 constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
 
-extern float INS_angle[3];       // yaw,pitch,roll
+extern float INS_angle[3]; // yaw,pitch,roll
 
 QD4310 YawMotor(&hcan1, 0x00);   // 云台偏航电机
 QD4310 PitchMotor(&hcan1, 0x01); // 云台俯仰电机
