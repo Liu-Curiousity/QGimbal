@@ -29,28 +29,36 @@ public:
     float pitch_imu_angle{0}; // in rad
 
     void enable() {
-        yawMotor.enable();
-        pitchMotor.enable();
-        enabled = true;
+        if (enabled) return; // 如果已经使能,则不重复使能
+        if (!yawMotor.enabled) yawMotor.enable();
+        if (!pitchMotor.enabled) pitchMotor.enable();
+        if (yawMotor.enabled && pitchMotor.enabled)
+            enabled = true;
     }
 
     void disable() {
+        if (!enabled) return; // 如果已经失能,则不重复失能
         yawMotor.setCurrent(0);
         pitchMotor.setCurrent(0);
-        yawMotor.disable();
-        pitchMotor.disable();
-        disable_stability();
-        enabled = false;
+        if (yawMotor.enabled) yawMotor.disable();
+        if (yawMotor.enabled) pitchMotor.disable();
+        if (!yawMotor.enabled && !pitchMotor.enabled) {
+            disable_stability();
+            enabled = false;
+        }
     }
 
     void enable_stability() {
-        if (!enabled) return;
+        if (!enabled) return;          // 如果没有使能,则不能开启稳定模式
+        if (stability_enabled) return; // 如果已经开启稳定模式,则不重复开启
         PID_yaw_imu.target = yaw_imu_angle;
         PID_pitch_imu.target = pitch_imu_angle + pitchMotor.angle;
         stability_enabled = true;
     }
 
     void disable_stability() {
+        if (!enabled) return;           // 如果没有使能,则不能关闭稳定模式
+        if (!stability_enabled) return; // 如果已经关闭稳定模式,则不重复关闭
         stability_enabled = false;
     }
 
