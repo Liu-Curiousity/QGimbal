@@ -24,8 +24,8 @@ void RetargetInit() {
 #endif
 }
 
-CharCircularQueue rx_queue{128};
-TxDualBuffer<char, 512> tx_buffer(&CDC_Transmit_FS);
+CharCircularQueue rx_queue{512};
+TxDualBuffer<char, 1024> tx_buffer(&CDC_Transmit_FS);
 
 void CDC_Receive_FS_Callback(uint8_t *Buf, uint32_t *Len) {
     auto length = *Len;
