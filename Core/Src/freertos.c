@@ -54,10 +54,10 @@ const osThreadAttr_t DebugTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for Ins */
-osThreadId_t InsHandle;
-const osThreadAttr_t Ins_attributes = {
-  .name = "Ins",
+/* Definitions for ImuTask */
+osThreadId_t ImuTaskHandle;
+const osThreadAttr_t ImuTask_attributes = {
+  .name = "ImuTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
@@ -96,7 +96,7 @@ const osThreadAttr_t StartShell_attributes = {
 /* USER CODE END FunctionPrototypes */
 
 void StartDebugTask(void *argument);
-extern void InsTask(void *argument);
+extern void StartImuTask(void *argument);
 extern void StartGimbalTask(void *argument);
 extern void StartTransmitTask(void *argument);
 extern void StartReceiveTask(void *argument);
@@ -135,8 +135,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of DebugTask */
   DebugTaskHandle = osThreadNew(StartDebugTask, NULL, &DebugTask_attributes);
 
-  /* creation of Ins */
-  InsHandle = osThreadNew(InsTask, NULL, &Ins_attributes);
+  /* creation of ImuTask */
+  ImuTaskHandle = osThreadNew(StartImuTask, NULL, &ImuTask_attributes);
 
   /* creation of GimbalTask */
   GimbalTaskHandle = osThreadNew(StartGimbalTask, NULL, &GimbalTask_attributes);

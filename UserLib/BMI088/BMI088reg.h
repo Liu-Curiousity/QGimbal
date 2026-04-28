@@ -123,7 +123,7 @@
 #define BMI088_GYRO_125 (0x4 << BMI088_GYRO_RANGE_SHFITS)
 
 #define BMI088_GYRO_BANDWIDTH 0x10
-// the first num means Output data  rate, the second num means bandwidth
+// the first num means Output data rate, the second num means bandwidth
 #define BMI088_GYRO_BANDWIDTH_MUST_Set 0x80
 #define BMI088_GYRO_2000_532_HZ 0x00
 #define BMI088_GYRO_2000_230_HZ 0x01

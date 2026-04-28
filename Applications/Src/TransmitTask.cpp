@@ -8,6 +8,7 @@
 #include "cmsis_os.h"
 #include "usart.h"
 #include "Gimbal.h"
+#include "BMI088.h"
 #include "queue.h"
 
 // 左下角为正方向
@@ -34,10 +35,10 @@ struct ReceivePackage {
 
 xQueueHandle receive_package_queue;
 
-extern float INS_angle[3]; // yaw,pitch,roll
-extern Gimbal gimbal;      // 云台
-extern QD4310 YawMotor;    // 云台偏航电机
-extern QD4310 PitchMotor;  // 云台俯仰电机
+extern Gimbal gimbal;     // 云台
+extern QD4310 YawMotor;   // 云台偏航电机
+extern QD4310 PitchMotor; // 云台俯仰电机
+extern BMI088 bmi088;
 
 uint8_t UART6_RxBuffer[sizeof(ReceivePackage)];
 
@@ -47,9 +48,9 @@ void StartTransmitTask(void *argument) {
         transmit_package.laser_enabled = HAL_GPIO_ReadPin(Laser_En_GPIO_Port, Laser_En_Pin);
         transmit_package.enabled = gimbal.enabled;
         transmit_package.stability_enabled = gimbal.stability_enabled;
-        transmit_package.imu_angles[0] = INS_angle[0];
-        transmit_package.imu_angles[1] = INS_angle[1];
-        transmit_package.imu_angles[2] = INS_angle[2];
+        transmit_package.imu_angles[0] = bmi088.yaw;
+        transmit_package.imu_angles[1] = bmi088.pitch;
+        transmit_package.imu_angles[2] = bmi088.roll;
         transmit_package.yaw_imu_angle = gimbal.imu_angle.yaw;
         transmit_package.pitch_imu_angle = gimbal.imu_angle.pitch;
         transmit_package.yaw_motor_angle = YawMotor.angle;

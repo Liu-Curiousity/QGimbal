@@ -9,6 +9,7 @@
 #include "usbd_cdc_if.h"
 #include "CharCircularQueue.h"
 #include "CDC_Tx_DualBuffer.h"
+#include "sys_public.h"
 
 #if !defined(OS_USE_SEMIHOSTING)
 

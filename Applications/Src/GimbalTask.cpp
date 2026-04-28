@@ -9,11 +9,12 @@
 #include "PID.h"
 #include "Gimbal.h"
 #include "Gimbal_config.h"
+#include "BMI088.h"
 
 constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: rad
 constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
 
-extern float INS_angle[3]; // yaw,pitch,roll
+extern BMI088 bmi088;
 
 QD4310 YawMotor(&hcan1, 0x00);   // 云台偏航电机
 QD4310 PitchMotor(&hcan1, 0x01); // 云台俯仰电机
@@ -73,7 +74,7 @@ void StartGimbalTask(void *argument) {
     while (true) {
         // TODO: IMU初始化完成后才进行闭环控制导致imu零点不等于电机零点
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
-        gimbal.Ctrl_ISR({INS_angle[0], INS_angle[1]});
+        gimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
         xTaskNotifyGive((TaskHandle_t)TransmitTaskHandle); // 通知发送任务发送数据
     }
 }

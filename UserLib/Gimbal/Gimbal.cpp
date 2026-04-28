@@ -3,6 +3,7 @@
 //
 
 #include "Gimbal.h"
+#include "sys_public.h"
 
 void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
     static gimbal_pair<float> previous_imu_angle = imu_angle;

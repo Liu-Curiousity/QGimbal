@@ -18,6 +18,7 @@
 #include "usb_device.h"
 #include "shell_cpp.h"
 #include "retarget.h"
+#include "FreeRTOS.h"
 #include "task.h"
 
 Shell shell;

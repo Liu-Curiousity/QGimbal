@@ -8,8 +8,7 @@ class MahonyAHRS {
 public:
     explicit MahonyAHRS(float sampleFreq) : sampleFreq(sampleFreq) {}
 
-    std::array<float, 4> q{1, 0, 0, 0};
-
+    float q[4]{1, 0, 0, 0};
 
     void update(float gx, float gy, float gz, float ax, float ay, float az) {
         float recipNorm;
