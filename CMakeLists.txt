@@ -42,9 +42,11 @@ add_executable(${CMAKE_PROJECT_NAME})
 add_subdirectory(cmake/stm32cubemx)
 
 # Add user libraries
+add_subdirectory(BSP/retarget)
 add_subdirectory(UserLib/BMI088)
-add_subdirectory(UserLib/retarget)
+add_subdirectory(UserLib/Gimbal)
 add_subdirectory(UserLib/LetterShell)
+add_subdirectory(UserLib/QD4310)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -57,17 +59,13 @@ file(GLOB_RECURSE APPLICATION_SOURCES "./Applications/*.c" "./Applications/*.cpp
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user sources here
         ${APPLICATION_SOURCES}
-        UserLib/QD4310/QD4310.cpp
-        UserLib/Gimbal/Gimbal.cpp
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user defined include paths
-        Applications
+        Applications/Inc
         UserLib/PID
-        UserLib/QD4310
-        UserLib/Gimbal
 )
 
 # Add project symbols (macros)
@@ -81,6 +79,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
         # Add user defined libraries
         bmi088
+        gimbal
+        qd4310
         retarget
         letter_shell
 )
