@@ -169,7 +169,14 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+extern void Reset_Handler(void); /* 声明定义在 startup_stm32f407xx.s 中的复位函数 */
+extern uint32_t _estack;         /* 声明定义在 ld 脚本里的栈顶地址 */
 
+__attribute__((section(".flash_bootloader"), used))
+const uint32_t boot_vector[2] = {
+  (uint32_t)&_estack,         /* 硬件自动读取作为 SP */
+  (uint32_t)&Reset_Handler    /* 硬件自动读取作为 PC，直接跳到系统正常的启动汇编 */
+};
 /* USER CODE END 4 */
 
 /**

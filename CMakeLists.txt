@@ -43,10 +43,12 @@ add_subdirectory(cmake/stm32cubemx)
 
 # Add user libraries
 add_subdirectory(BSP/retarget)
+add_subdirectory(BSP/Storage)
 add_subdirectory(UserLib/BMI088)
 add_subdirectory(UserLib/Gimbal)
 add_subdirectory(UserLib/LetterShell)
 add_subdirectory(UserLib/QD4310)
+add_subdirectory(UserLib/Storage)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -66,6 +68,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user defined include paths
         Applications/Inc
         UserLib/PID
+        BSP
 )
 
 # Add project symbols (macros)
@@ -83,6 +86,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         qd4310
         retarget
         letter_shell
+        storage
+        storage_embedded
 )
 
 # 查找 UserLib 下的所有源文件
