@@ -57,7 +57,7 @@ void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
 }
 
 void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
-    static float current_to_ctrl = 0;
+    static gimbal_pair<float> previous_imu_angle;
 
     if (!enabled) return;
 
@@ -83,28 +83,18 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
                 motor.pitch.setSpeed(pitch_clamp(target_speed.pitch));
             } else {
                 pid_angle.yaw.target += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
-                pid_angle.yaw.target = wrap(pid_angle.yaw.target, 0, 2 * std::numbers::pi_v<float>);
-                // 过零点处理
-                if (pid_angle.yaw.target - imu_angle.yaw > std::numbers::pi_v<float>) {
-                    current_to_ctrl = pid_angle.yaw.calc(imu_angle.yaw + 2 * std::numbers::pi_v<float>);
-                } else if (pid_angle.yaw.target - imu_angle.yaw < -std::numbers::pi_v<float>) {
-                    current_to_ctrl = pid_angle.yaw.calc(imu_angle.yaw - 2 * std::numbers::pi_v<float>);
-                } else {
-                    current_to_ctrl = pid_angle.yaw.calc(imu_angle.yaw);
-                }
+                if ((previous_imu_angle - imu_angle).yaw > std::numbers::pi_v<float>)
+                    pid_angle.yaw.target -= 2 * std::numbers::pi_v<float>;
+                else if ((previous_imu_angle - imu_angle).yaw < -std::numbers::pi_v<float>)
+                    pid_angle.yaw.target += 2 * std::numbers::pi_v<float>;
+                target_current.yaw = pid_angle.yaw.calc(imu_angle.yaw);
 
-                target_current.yaw = current_to_ctrl;
                 pid_angle.pitch.target += pitch_clamp(target_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
-                pid_angle.pitch.target = wrap(pid_angle.pitch.target, 0, 2 * std::numbers::pi_v<float>);
-                // 过零点处理
-                if (pid_angle.pitch.target - imu_angle.pitch > std::numbers::pi_v<float>) {
-                    current_to_ctrl = pid_angle.pitch.calc(imu_angle.pitch + 2 * std::numbers::pi_v<float>);
-                } else if (pid_angle.pitch.target - imu_angle.pitch < -std::numbers::pi_v<float>) {
-                    current_to_ctrl = pid_angle.pitch.calc(imu_angle.pitch - 2 * std::numbers::pi_v<float>);
-                } else {
-                    current_to_ctrl = pid_angle.pitch.calc(imu_angle.pitch);
-                }
-                target_current.pitch = current_to_ctrl;
+                if ((previous_imu_angle - imu_angle).pitch > std::numbers::pi_v<float>)
+                    pid_angle.pitch.target -= 2 * std::numbers::pi_v<float>;
+                else if ((previous_imu_angle - imu_angle).pitch < -std::numbers::pi_v<float>)
+                    pid_angle.pitch.target += 2 * std::numbers::pi_v<float>;
+                target_current.pitch = pid_angle.pitch.calc(imu_angle.pitch);
 
                 motor.yaw.setCurrent(target_current.yaw);
                 motor.pitch.setCurrent(target_current.pitch);
@@ -126,4 +116,5 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
             motor.pitch.setCurrent(target_current.pitch);
             break;
     }
+    previous_imu_angle = imu_angle;
 }
