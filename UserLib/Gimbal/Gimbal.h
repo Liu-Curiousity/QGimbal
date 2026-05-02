@@ -27,19 +27,31 @@ public:
     };
 
     template <typename T>
-    struct gimbal_pair {
+    class gimbal_pair {
+    public:
         T yaw;
         T pitch;
+
+        gimbal_pair<float> operator-(const gimbal_pair& gimbal_pair) const {
+            return {
+                yaw - gimbal_pair.yaw,
+                pitch - gimbal_pair.pitch
+            };
+        }
     };
 
     Gimbal(const gimbal_pair<QD4310&> motor, const gimbal_pair<float> center,
-           const gimbal_pair<PID>& pid_imu, const float ctrl_ts) :
+           const gimbal_pair<PID>& pid_speed, const gimbal_pair<PID>& pid_angle,
+           const float ctrl_ts) :
         Ts(ctrl_ts), center(center),
-        motor(motor), pid_angle(pid_imu) {}
+        motor(motor), pid_speed(pid_speed), pid_angle(pid_angle) {}
 
     bool enabled{false};
     bool stability_enabled{false};
     gimbal_pair<float> imu_angle{0, 0}; // 单位:rad
+    gimbal_pair<float> angle{0, 0};     // 单位:rad
+    gimbal_pair<float> speed{0, 0};     // 单位:rpm
+    gimbal_pair<float> current{0, 0};   // 单位:A
 
     void enable();
     void disable();
@@ -49,9 +61,9 @@ public:
     /**
      * @brief Gimbal控制设置函数
      * @param ctrl_type 控制类型
-     * @param speed yaw轴和pitch轴速度,单位:rpm
+     * @param value yaw轴和pitch轴控制量
      */
-    void Ctrl(CtrlType ctrl_type, gimbal_pair<float> speed);
+    void Ctrl(CtrlType ctrl_type, gimbal_pair<float> value);
 
     /**
      * @brief Gimbal控制中断服务函数
@@ -67,11 +79,14 @@ private:
     gimbal_pair<float> target_current{0, 0}; // 单位:A
     gimbal_pair<float> center{0, 0};         // 云台中心位置,单位:rad
     gimbal_pair<QD4310&> motor;
+    gimbal_pair<PID> pid_speed;
     gimbal_pair<PID> pid_angle;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
 
-    static float wrap(float value, const float min, const float max) {
+    static float wrap(float value,
+                      const float min = -std::numbers::pi_v<float>,
+                      const float max = std::numbers::pi_v<float>) {
         value = std::fmod(value - min, max - min);
         return value < 0 ? value + max : value + min;
     }

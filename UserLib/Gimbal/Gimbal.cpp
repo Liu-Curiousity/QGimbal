@@ -28,7 +28,7 @@ void Gimbal::enable_stability() {
     if (!enabled) return;          // 如果没有使能,则不能开启稳定模式
     if (stability_enabled) return; // 如果已经开启稳定模式,则不重复开启
     pid_angle.yaw.target = imu_angle.yaw;
-    pid_angle.pitch.target = imu_angle.pitch + motor.pitch.angle;
+    pid_angle.pitch.target = imu_angle.pitch + angle.pitch;
     stability_enabled = true;
 }
 
@@ -38,9 +38,22 @@ void Gimbal::disable_stability() {
     stability_enabled = false;
 }
 
-void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> speed) {
+void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
     this->ctrl_type = ctrl_type;
-    target_speed = speed;
+    switch (ctrl_type) {
+        case CtrlType::LowSpeedCtrl:
+            break;
+        case CtrlType::AngleCtrl:
+            break;
+        case CtrlType::StepAngleCtrl:
+            break;
+        case CtrlType::SpeedCtrl:
+            target_speed = value;
+            break;
+        case CtrlType::CurrentCtrl:
+            target_current = value;
+            break;
+    }
 }
 
 void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
@@ -48,21 +61,26 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
 
     if (!enabled) return;
 
-    imu_angle.yaw = imu_angle_.yaw;
-    imu_angle.pitch = imu_angle_.pitch + motor.pitch.angle;
+    /** 1.更新状态 **/
+    angle = {motor.yaw.angle, motor.pitch.angle};
+    speed = {motor.yaw.speed, motor.pitch.speed};
+    current = {motor.yaw.current, motor.pitch.current};
+
+    imu_angle = {imu_angle_.yaw, imu_angle_.pitch + angle.pitch};
+
+    auto pitch_clamp = [*this](const float value) {
+        if ((value > 0 && wrap((angle - center).pitch) > pitch_max) ||
+            (value < 0 && wrap((angle - center).pitch) < -pitch_max))
+            return 0.0f;
+        return value;
+    };
 
     /**1.速度闭环控制**/
     switch (ctrl_type) {
         case CtrlType::LowSpeedCtrl:
             if (!stability_enabled) {
                 motor.yaw.setSpeed(target_speed.yaw);
-                /*==============pitch轴限位===============*/
-                if ((target_speed.pitch > 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                                    std::numbers::pi_v<float>) > pitch_max) ||
-                    (target_speed.pitch < 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                                    std::numbers::pi_v<float>) < -pitch_max))
-                    motor.pitch.setSpeed(0);
-                else motor.pitch.setSpeed(target_speed.pitch);
+                motor.pitch.setSpeed(pitch_clamp(target_speed.pitch));
             } else {
                 pid_angle.yaw.target += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
                 pid_angle.yaw.target = wrap(pid_angle.yaw.target, 0, 2 * std::numbers::pi_v<float>);
@@ -76,14 +94,7 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
                 }
 
                 target_current.yaw = current_to_ctrl;
-                /*==============pitch轴限位===============*/
-                if ((target_speed.pitch > 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                                    std::numbers::pi_v<float>) > pitch_max) ||
-                    (target_speed.pitch < 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                                    std::numbers::pi_v<float>) < -pitch_max))
-                    pid_angle.pitch.target += 0;
-                else
-                    pid_angle.pitch.target += target_speed.pitch * Ts * 2 * std::numbers::pi_v<float> / 60;
+                pid_angle.pitch.target += pitch_clamp(target_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
                 pid_angle.pitch.target = wrap(pid_angle.pitch.target, 0, 2 * std::numbers::pi_v<float>);
                 // 过零点处理
                 if (pid_angle.pitch.target - imu_angle.pitch > std::numbers::pi_v<float>) {
@@ -98,13 +109,21 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
                 motor.yaw.setCurrent(target_current.yaw);
                 motor.pitch.setCurrent(target_current.pitch);
             }
+            break;
         case CtrlType::AngleCtrl:
             break;
         case CtrlType::StepAngleCtrl:
             break;
         case CtrlType::SpeedCtrl:
+            if (stability_enabled) {
+                target_current = {};
+            } else {
+                target_current = {pid_speed.yaw.calc(speed.yaw), pid_speed.pitch.calc(speed.pitch)};
+            }
             break;
         case CtrlType::CurrentCtrl:
+            motor.yaw.setCurrent(target_current.yaw);
+            motor.pitch.setCurrent(target_current.pitch);
             break;
     }
 }

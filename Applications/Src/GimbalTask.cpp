@@ -23,6 +23,16 @@ Gimbal gimbal(
     {
         PID{
             PID::PID_type::position_type,
+            0.0f, 0.f, 0.0f,
+        },
+        PID{
+            PID::PID_type::position_type,
+            0.0f, 0.0f, 0.0f,
+        }
+    },
+    {
+        PID{
+            PID::PID_type::position_type,
             5.0f, 0.1f, 110.0f,
             1.8f, -1.8f,
             1, -1
