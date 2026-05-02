@@ -49,6 +49,7 @@ public:
     bool enabled{false};
     bool stability_enabled{false};
     gimbal_pair<float> imu_angle{0, 0}; // 单位:rad
+    gimbal_pair<float> imu_speed{0, 0}; // 单位:rad
     gimbal_pair<float> angle{0, 0};     // 单位:rad
     gimbal_pair<float> speed{0, 0};     // 单位:rpm
     gimbal_pair<float> current{0, 0};   // 单位:A
@@ -72,9 +73,10 @@ public:
     void Ctrl_ISR(gimbal_pair<float> imu_angle_);
 
 private:
-    CtrlType ctrl_type{CtrlType::SpeedCtrl}; // 当前控制类型
+    CtrlType ctrl_type{CtrlType::CurrentCtrl}; // 当前控制类型
 
     float Ts;                                // 控制周期,单位:s
+    gimbal_pair<float> target_angle{0, 0};   // 单位:rad
     gimbal_pair<float> target_speed{0, 0};   // 单位:rpm
     gimbal_pair<float> target_current{0, 0}; // 单位:A
     gimbal_pair<float> center{0, 0};         // 云台中心位置,单位:rad

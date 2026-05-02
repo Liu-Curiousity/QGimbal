@@ -42,8 +42,10 @@ void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
     this->ctrl_type = ctrl_type;
     switch (ctrl_type) {
         case CtrlType::LowSpeedCtrl:
+            target_speed = value;
             break;
         case CtrlType::AngleCtrl:
+            target_angle = value;
             break;
         case CtrlType::StepAngleCtrl:
             break;
@@ -57,7 +59,7 @@ void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
 }
 
 void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
-    static gimbal_pair<float> previous_imu_angle;
+    static gimbal_pair<float> previous_angle;
 
     if (!enabled) return;
 
@@ -67,6 +69,7 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     current = {motor.yaw.current, motor.pitch.current};
 
     imu_angle = {imu_angle_.yaw, imu_angle_.pitch + angle.pitch};
+    imu_speed = {};
 
     auto pitch_clamp = [*this](const float value) {
         if ((value > 0 && wrap((angle - center).pitch) > pitch_max) ||
@@ -75,46 +78,47 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
         return value;
     };
 
-    /**1.速度闭环控制**/
+    // 根据稳定模式选择反馈量, 稳定模式下使用IMU角度和速度, 非稳定模式下使用电机角度和速度
+    const auto angle_ = stability_enabled ? imu_angle : angle;
+    const auto speed_ = stability_enabled ? imu_speed : speed;
+
+    /** 2.速度闭环控制 **/
     switch (ctrl_type) {
         case CtrlType::LowSpeedCtrl:
-            if (!stability_enabled) {
-                motor.yaw.setSpeed(target_speed.yaw);
-                motor.pitch.setSpeed(pitch_clamp(target_speed.pitch));
-            } else {
-                pid_angle.yaw.target += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
-                if ((previous_imu_angle - imu_angle).yaw > std::numbers::pi_v<float>)
-                    pid_angle.yaw.target -= 2 * std::numbers::pi_v<float>;
-                else if ((previous_imu_angle - imu_angle).yaw < -std::numbers::pi_v<float>)
-                    pid_angle.yaw.target += 2 * std::numbers::pi_v<float>;
-                target_current.yaw = pid_angle.yaw.calc(imu_angle.yaw);
-
-                pid_angle.pitch.target += pitch_clamp(target_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
-                if ((previous_imu_angle - imu_angle).pitch > std::numbers::pi_v<float>)
-                    pid_angle.pitch.target -= 2 * std::numbers::pi_v<float>;
-                else if ((previous_imu_angle - imu_angle).pitch < -std::numbers::pi_v<float>)
-                    pid_angle.pitch.target += 2 * std::numbers::pi_v<float>;
-                target_current.pitch = pid_angle.pitch.calc(imu_angle.pitch);
-
-                motor.yaw.setCurrent(target_current.yaw);
-                motor.pitch.setCurrent(target_current.pitch);
-            }
-            break;
+            target_angle.yaw += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
+            target_angle.pitch += pitch_clamp(target_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
         case CtrlType::AngleCtrl:
-            break;
         case CtrlType::StepAngleCtrl:
+            if ((previous_angle - angle_).yaw > std::numbers::pi_v<float>)
+                target_angle.yaw -= 2 * std::numbers::pi_v<float>;
+            else if ((previous_angle - angle_).yaw < -std::numbers::pi_v<float>)
+                target_angle.yaw += 2 * std::numbers::pi_v<float>;
+
+            if ((previous_angle - angle_).pitch > std::numbers::pi_v<float>)
+                target_angle.pitch -= 2 * std::numbers::pi_v<float>;
+            else if ((previous_angle - angle_).pitch < -std::numbers::pi_v<float>)
+                target_angle.pitch += 2 * std::numbers::pi_v<float>;
+
+            pid_angle.yaw.target = target_angle.yaw;
+            pid_angle.pitch.target = target_angle.pitch;
+
+            target_current.yaw = pid_angle.yaw.calc(angle_.yaw);
+            target_current.pitch = pid_angle.pitch.calc(angle_.pitch);
+
+            motor.yaw.setCurrent(target_current.yaw);
+            motor.pitch.setCurrent(target_current.pitch);
             break;
         case CtrlType::SpeedCtrl:
-            if (stability_enabled) {
-                target_current = {};
-            } else {
-                target_current = {pid_speed.yaw.calc(speed.yaw), pid_speed.pitch.calc(speed.pitch)};
-            }
+            pid_speed.yaw.target = pitch_clamp(target_speed.yaw);
+            pid_speed.pitch.target = pitch_clamp(target_speed.pitch);
+            target_current = {pid_speed.yaw.calc(speed_.yaw), pid_speed.pitch.calc(speed_.pitch)};
+            motor.yaw.setCurrent(target_current.yaw);
+            motor.pitch.setCurrent(target_current.pitch);
             break;
         case CtrlType::CurrentCtrl:
             motor.yaw.setCurrent(target_current.yaw);
             motor.pitch.setCurrent(target_current.pitch);
             break;
     }
-    previous_imu_angle = imu_angle;
+    previous_angle = angle_;
 }

@@ -8,6 +8,7 @@
 #include "QD4310.h"
 #include "PID.h"
 #include "Gimbal.h"
+#include "Gimbal_config.h"
 
 constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: rad
 constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
@@ -23,11 +24,23 @@ Gimbal gimbal(
     {
         PID{
             PID::PID_type::position_type,
-            0.0f, 0.f, 0.0f,
+            GIMBAL_SPEED_KP,
+            GIMBAL_SPEED_KI,
+            GIMBAL_SPEED_KD,
+            2e3f,
+            -2e3f,
+            FOC_MAX_CURRENT,
+            -FOC_MAX_CURRENT
         },
         PID{
             PID::PID_type::position_type,
-            0.0f, 0.0f, 0.0f,
+            GIMBAL_SPEED_KP,
+            GIMBAL_SPEED_KI,
+            GIMBAL_SPEED_KD,
+            2e3f,
+            -2e3f,
+            FOC_MAX_CURRENT,
+            -FOC_MAX_CURRENT
         }
     },
     {
@@ -66,6 +79,8 @@ void StartGimbalTask(void *argument) {
     gimbal.enable();
     osDelay(50);
     gimbal.enable_stability();
+
+    gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl, {0, 0});
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
         gimbal.Ctrl_ISR({INS_angle[0], INS_angle[1]});
