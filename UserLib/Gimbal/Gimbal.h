@@ -19,10 +19,11 @@
 class Gimbal {
 public:
     enum class CtrlType {
-        SpeedCtrl = 0,
-        AngleCtrl = 1,
-        StepAngleCtrl = 2,
-        LowSpeedCtrl = 3,
+        CurrentCtrl = 0,
+        SpeedCtrl = 1,
+        AngleCtrl = 2,
+        StepAngleCtrl = 3,
+        LowSpeedCtrl = 4,
     };
 
     template <typename T>
@@ -34,7 +35,7 @@ public:
     Gimbal(const gimbal_pair<QD4310&> motor, const gimbal_pair<float> center,
            const gimbal_pair<PID>& pid_imu, const float ctrl_ts) :
         Ts(ctrl_ts), center(center),
-        motor(motor), pid_imu(pid_imu) {}
+        motor(motor), pid_angle(pid_imu) {}
 
     bool enabled{false};
     bool stability_enabled{false};
@@ -61,11 +62,12 @@ public:
 private:
     CtrlType ctrl_type{CtrlType::SpeedCtrl}; // 当前控制类型
 
-    float Ts;                              // 控制周期,单位:s
-    gimbal_pair<float> target_speed{0, 0}; // 单位:rpm
-    gimbal_pair<float> center{0, 0};       // 云台中心位置,单位:rad
+    float Ts;                                // 控制周期,单位:s
+    gimbal_pair<float> target_speed{0, 0};   // 单位:rpm
+    gimbal_pair<float> target_current{0, 0}; // 单位:A
+    gimbal_pair<float> center{0, 0};         // 云台中心位置,单位:rad
     gimbal_pair<QD4310&> motor;
-    gimbal_pair<PID> pid_imu;
+    gimbal_pair<PID> pid_angle;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
 

@@ -27,8 +27,8 @@ void Gimbal::disable() {
 void Gimbal::enable_stability() {
     if (!enabled) return;          // 如果没有使能,则不能开启稳定模式
     if (stability_enabled) return; // 如果已经开启稳定模式,则不重复开启
-    pid_imu.yaw.target = imu_angle.yaw;
-    pid_imu.pitch.target = imu_angle.pitch + motor.pitch.angle;
+    pid_angle.yaw.target = imu_angle.yaw;
+    pid_angle.pitch.target = imu_angle.pitch + motor.pitch.angle;
     stability_enabled = true;
 }
 
@@ -50,45 +50,61 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
 
     imu_angle.yaw = imu_angle_.yaw;
     imu_angle.pitch = imu_angle_.pitch + motor.pitch.angle;
-    if (!stability_enabled) {
-        motor.yaw.setSpeed(target_speed.yaw);
-        /*==============pitch轴限位===============*/
-        if ((target_speed.pitch > 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                            std::numbers::pi_v<float>) > pitch_max) ||
-            (target_speed.pitch < 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                            std::numbers::pi_v<float>) < -pitch_max))
-            motor.pitch.setSpeed(0);
-        else motor.pitch.setSpeed(target_speed.pitch);
-    } else {
-        pid_imu.yaw.target += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
-        pid_imu.yaw.target = wrap(pid_imu.yaw.target, 0, 2 * std::numbers::pi_v<float>);
-        // 过零点处理
-        if (pid_imu.yaw.target - imu_angle.yaw > std::numbers::pi_v<float>) {
-            current_to_ctrl = pid_imu.yaw.calc(imu_angle.yaw + 2 * std::numbers::pi_v<float>);
-        } else if (pid_imu.yaw.target - imu_angle.yaw < -std::numbers::pi_v<float>) {
-            current_to_ctrl = pid_imu.yaw.calc(imu_angle.yaw - 2 * std::numbers::pi_v<float>);
-        } else {
-            current_to_ctrl = pid_imu.yaw.calc(imu_angle.yaw);
-        }
 
-        motor.yaw.setCurrent(current_to_ctrl);
-        /*==============pitch轴限位===============*/
-        if ((target_speed.pitch > 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                            std::numbers::pi_v<float>) > pitch_max) ||
-            (target_speed.pitch < 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
-                                            std::numbers::pi_v<float>) < -pitch_max))
-            pid_imu.pitch.target += 0;
-        else
-            pid_imu.pitch.target += target_speed.pitch * Ts * 2 * std::numbers::pi_v<float> / 60;
-        pid_imu.pitch.target = wrap(pid_imu.pitch.target, 0, 2 * std::numbers::pi_v<float>);
-        // 过零点处理
-        if (pid_imu.pitch.target - imu_angle.pitch > std::numbers::pi_v<float>) {
-            current_to_ctrl = pid_imu.pitch.calc(imu_angle.pitch + 2 * std::numbers::pi_v<float>);
-        } else if (pid_imu.pitch.target - imu_angle.pitch < -std::numbers::pi_v<float>) {
-            current_to_ctrl = pid_imu.pitch.calc(imu_angle.pitch - 2 * std::numbers::pi_v<float>);
-        } else {
-            current_to_ctrl = pid_imu.pitch.calc(imu_angle.pitch);
-        }
-        motor.pitch.setCurrent(current_to_ctrl);
+    /**1.速度闭环控制**/
+    switch (ctrl_type) {
+        case CtrlType::LowSpeedCtrl:
+            if (!stability_enabled) {
+                motor.yaw.setSpeed(target_speed.yaw);
+                /*==============pitch轴限位===============*/
+                if ((target_speed.pitch > 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
+                                                    std::numbers::pi_v<float>) > pitch_max) ||
+                    (target_speed.pitch < 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
+                                                    std::numbers::pi_v<float>) < -pitch_max))
+                    motor.pitch.setSpeed(0);
+                else motor.pitch.setSpeed(target_speed.pitch);
+            } else {
+                pid_angle.yaw.target += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
+                pid_angle.yaw.target = wrap(pid_angle.yaw.target, 0, 2 * std::numbers::pi_v<float>);
+                // 过零点处理
+                if (pid_angle.yaw.target - imu_angle.yaw > std::numbers::pi_v<float>) {
+                    current_to_ctrl = pid_angle.yaw.calc(imu_angle.yaw + 2 * std::numbers::pi_v<float>);
+                } else if (pid_angle.yaw.target - imu_angle.yaw < -std::numbers::pi_v<float>) {
+                    current_to_ctrl = pid_angle.yaw.calc(imu_angle.yaw - 2 * std::numbers::pi_v<float>);
+                } else {
+                    current_to_ctrl = pid_angle.yaw.calc(imu_angle.yaw);
+                }
+
+                target_current.yaw = current_to_ctrl;
+                /*==============pitch轴限位===============*/
+                if ((target_speed.pitch > 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
+                                                    std::numbers::pi_v<float>) > pitch_max) ||
+                    (target_speed.pitch < 0 && wrap(motor.pitch.angle - center.pitch, -std::numbers::pi_v<float>,
+                                                    std::numbers::pi_v<float>) < -pitch_max))
+                    pid_angle.pitch.target += 0;
+                else
+                    pid_angle.pitch.target += target_speed.pitch * Ts * 2 * std::numbers::pi_v<float> / 60;
+                pid_angle.pitch.target = wrap(pid_angle.pitch.target, 0, 2 * std::numbers::pi_v<float>);
+                // 过零点处理
+                if (pid_angle.pitch.target - imu_angle.pitch > std::numbers::pi_v<float>) {
+                    current_to_ctrl = pid_angle.pitch.calc(imu_angle.pitch + 2 * std::numbers::pi_v<float>);
+                } else if (pid_angle.pitch.target - imu_angle.pitch < -std::numbers::pi_v<float>) {
+                    current_to_ctrl = pid_angle.pitch.calc(imu_angle.pitch - 2 * std::numbers::pi_v<float>);
+                } else {
+                    current_to_ctrl = pid_angle.pitch.calc(imu_angle.pitch);
+                }
+                target_current.pitch = current_to_ctrl;
+
+                motor.yaw.setCurrent(target_current.yaw);
+                motor.pitch.setCurrent(target_current.pitch);
+            }
+        case CtrlType::AngleCtrl:
+            break;
+        case CtrlType::StepAngleCtrl:
+            break;
+        case CtrlType::SpeedCtrl:
+            break;
+        case CtrlType::CurrentCtrl:
+            break;
     }
 }
