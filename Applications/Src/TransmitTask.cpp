@@ -50,8 +50,8 @@ void StartTransmitTask(void *argument) {
         transmit_package.imu_angles[0] = INS_angle[0];
         transmit_package.imu_angles[1] = INS_angle[1];
         transmit_package.imu_angles[2] = INS_angle[2];
-        transmit_package.yaw_imu_angle = gimbal.yaw_imu_angle;
-        transmit_package.pitch_imu_angle = gimbal.pitch_imu_angle;
+        transmit_package.yaw_imu_angle = gimbal.imu_angle.yaw;
+        transmit_package.pitch_imu_angle = gimbal.imu_angle.pitch;
         transmit_package.yaw_motor_angle = YawMotor.angle;
         transmit_package.pitch_motor_angle = PitchMotor.angle;
         // 计算校验和
@@ -86,8 +86,9 @@ void StartReceiveTask(void *argument) {
             if (receive_package.stability_enabled == 0 || receive_package.stability_enabled == 1) {
                 receive_package.stability_enabled ? gimbal.enable_stability() : gimbal.disable_stability();
             }
-            gimbal.Ctrl(std::clamp(receive_package.yaw_speed, -50.0f, 50.0f),
-                        std::clamp(receive_package.pitch_speed, -50.0f, 50.0f));
+            gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl,
+                        {std::clamp(receive_package.yaw_speed, -50.0f, 50.0f),
+                        std::clamp(receive_package.pitch_speed, -50.0f, 50.0f)});
         }
     }
 }

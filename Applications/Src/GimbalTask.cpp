@@ -18,19 +18,21 @@ QD4310 YawMotor(&hcan1, 0x00);   // 云台偏航电机
 QD4310 PitchMotor(&hcan1, 0x01); // 云台俯仰电机
 
 Gimbal gimbal(
-    YawMotor, PitchMotor,
-    yaw_center, pitch_center,
-    PID{
-        PID::PID_type::position_type,
-        5.0f, 0.1f, 110.0f,
-        1.8f, -1.8f,
-        1, -1
-    },
-    PID{
-        PID::PID_type::position_type,
-        4.6f, 0.17f, 30.0f,
-        1.8f, -1.8f,
-        1, -1
+    {YawMotor, PitchMotor},
+    {yaw_center, pitch_center},
+    {
+        PID{
+            PID::PID_type::position_type,
+            5.0f, 0.1f, 110.0f,
+            1.8f, -1.8f,
+            1, -1
+        },
+        PID{
+            PID::PID_type::position_type,
+            4.6f, 0.17f, 30.0f,
+            1.8f, -1.8f,
+            1, -1
+        }
     },
     0.001f
 );
@@ -56,7 +58,7 @@ void StartGimbalTask(void *argument) {
     gimbal.enable_stability();
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
-        gimbal.Ctrl_ISR(INS_angle[0], INS_angle[1]);
+        gimbal.Ctrl_ISR({INS_angle[0], INS_angle[1]});
         xTaskNotifyGive((TaskHandle_t)TransmitTaskHandle); // 通知发送任务发送数据
     }
 }

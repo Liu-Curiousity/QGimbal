@@ -18,127 +18,56 @@
 
 class Gimbal {
 public:
-    Gimbal(QD4310& yawMotor, QD4310& pitchMotor, const float yaw_center, const float pitch_center,
-           const PID& PID_yaw_imu, const PID& PID_pitch_imu, const float ctrl_ts) :
-        yawMotor(yawMotor), pitchMotor(pitchMotor), PID_yaw_imu(PID_yaw_imu), PID_pitch_imu(PID_pitch_imu), Ts(ctrl_ts),
-        yaw_center(yaw_center), pitch_center(pitch_center) {}
+    enum class CtrlType {
+        SpeedCtrl = 0,
+        AngleCtrl = 1,
+        StepAngleCtrl = 2,
+        LowSpeedCtrl = 3,
+    };
+
+    template <typename T>
+    struct gimbal_pair {
+        T yaw;
+        T pitch;
+    };
+
+    Gimbal(const gimbal_pair<QD4310&> motor, const gimbal_pair<float> center,
+           const gimbal_pair<PID>& pid_imu, const float ctrl_ts) :
+        Ts(ctrl_ts), center(center),
+        motor(motor), pid_imu(pid_imu) {}
 
     bool enabled{false};
     bool stability_enabled{false};
-    float yaw_imu_angle{0};   // in rad
-    float pitch_imu_angle{0}; // in rad
+    gimbal_pair<float> imu_angle{0, 0}; // 单位:rad
 
-    void enable() {
-        if (enabled) return; // 如果已经使能,则不重复使能
-        if (!yawMotor.enabled) yawMotor.enable();
-        if (!pitchMotor.enabled) pitchMotor.enable();
-        if (yawMotor.enabled && pitchMotor.enabled)
-            enabled = true;
-    }
-
-    void disable() {
-        if (!enabled) return; // 如果已经失能,则不重复失能
-        yawMotor.setCurrent(0);
-        pitchMotor.setCurrent(0);
-        if (yawMotor.enabled) yawMotor.disable();
-        if (yawMotor.enabled) pitchMotor.disable();
-        if (!yawMotor.enabled && !pitchMotor.enabled) {
-            disable_stability();
-            enabled = false;
-        }
-    }
-
-    void enable_stability() {
-        if (!enabled) return;          // 如果没有使能,则不能开启稳定模式
-        if (stability_enabled) return; // 如果已经开启稳定模式,则不重复开启
-        PID_yaw_imu.target = yaw_imu_angle;
-        PID_pitch_imu.target = pitch_imu_angle + pitchMotor.angle;
-        stability_enabled = true;
-    }
-
-    void disable_stability() {
-        if (!enabled) return;           // 如果没有使能,则不能关闭稳定模式
-        if (!stability_enabled) return; // 如果已经关闭稳定模式,则不重复关闭
-        stability_enabled = false;
-    }
+    void enable();
+    void disable();
+    void enable_stability();
+    void disable_stability();
 
     /**
-     * @param yaw_speed yaw轴速度,单位:rpm
-     * @param pitch_speed pitch轴速度,单位:rpm
+     * @brief Gimbal控制设置函数
+     * @param ctrl_type 控制类型
+     * @param speed yaw轴和pitch轴速度,单位:rpm
      */
-    void Ctrl(const float yaw_speed, const float pitch_speed) {
-        target_yaw_speed = yaw_speed;
-        target_pitch_speed = pitch_speed;
-    }
+    void Ctrl(CtrlType ctrl_type, gimbal_pair<float> speed);
 
     /**
-     * @param yaw_imu_angle_ imu测量的偏航角度,单位:rad
-     * @param pitch_imu_angle_ imu测量的俯仰角度,单位:rad
+     * @brief Gimbal控制中断服务函数
+     * @param imu_angle_ imu测量的偏航和俯仰角度,单位:rad
      */
-    void Ctrl_ISR(const float yaw_imu_angle_, const float pitch_imu_angle_) {
-        static float speed_to_ctrl = 0;
-
-        if (!enabled) return;
-
-        yaw_imu_angle = yaw_imu_angle_;
-        pitch_imu_angle = pitch_imu_angle_ + pitchMotor.angle;
-        if (!stability_enabled) {
-            yawMotor.setSpeed(target_yaw_speed);
-            /*==============pitch轴限位===============*/
-            if ((target_pitch_speed > 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
-                                                std::numbers::pi_v<float>) > pitch_max) ||
-                (target_pitch_speed < 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
-                                                std::numbers::pi_v<float>) < -pitch_max))
-                pitchMotor.setSpeed(0);
-            else pitchMotor.setSpeed(target_pitch_speed);
-        } else {
-            PID_yaw_imu.target += target_yaw_speed * Ts * 2 * std::numbers::pi_v<float> / 60;
-            PID_yaw_imu.target = wrap(PID_yaw_imu.target, 0, 2 * std::numbers::pi_v<float>);
-            // 过零点处理
-            if (PID_yaw_imu.target - yaw_imu_angle > std::numbers::pi_v<float>) {
-                speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle + 2 * std::numbers::pi_v<float>);
-            } else if (PID_yaw_imu.target - yaw_imu_angle < -std::numbers::pi_v<float>) {
-                speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle - 2 * std::numbers::pi_v<float>);
-            } else {
-                speed_to_ctrl = PID_yaw_imu.calc(yaw_imu_angle);
-            }
-
-            yawMotor.setCurrent(speed_to_ctrl);
-            /*==============pitch轴限位===============*/
-            if ((target_pitch_speed > 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
-                                                std::numbers::pi_v<float>) > pitch_max) ||
-                (target_pitch_speed < 0 && wrap(pitchMotor.angle - pitch_center, -std::numbers::pi_v<float>,
-                                                std::numbers::pi_v<float>) < -pitch_max))
-                PID_pitch_imu.target += 0;
-            else
-                PID_pitch_imu.target += target_pitch_speed * Ts * 2 * std::numbers::pi_v<float> / 60;
-            PID_pitch_imu.target = wrap(PID_pitch_imu.target, 0, 2 * std::numbers::pi_v<float>);
-            // 过零点处理
-            if (PID_pitch_imu.target - pitch_imu_angle > std::numbers::pi_v<float>) {
-                speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle + 2 * std::numbers::pi_v<float>);
-            } else if (PID_pitch_imu.target - pitch_imu_angle < -std::numbers::pi_v<float>) {
-                speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle - 2 * std::numbers::pi_v<float>);
-            } else {
-                speed_to_ctrl = PID_pitch_imu.calc(pitch_imu_angle);
-            }
-            pitchMotor.setCurrent(speed_to_ctrl);
-        }
-    }
+    void Ctrl_ISR(gimbal_pair<float> imu_angle_);
 
 private:
-    QD4310& yawMotor;
-    QD4310& pitchMotor;
-    PID PID_yaw_imu;
-    PID PID_pitch_imu;
+    CtrlType ctrl_type{CtrlType::SpeedCtrl}; // 当前控制类型
+
+    float Ts;                              // 控制周期,单位:s
+    gimbal_pair<float> target_speed{0, 0}; // 单位:rpm
+    gimbal_pair<float> center{0, 0};       // 云台中心位置,单位:rad
+    gimbal_pair<QD4310&> motor;
+    gimbal_pair<PID> pid_imu;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
-
-    float Ts;
-    float target_yaw_speed{0};   // in rpm
-    float target_pitch_speed{0}; // in rpm
-
-    float yaw_center;
-    float pitch_center;
 
     static float wrap(float value, const float min, const float max) {
         value = std::fmod(value - min, max - min);
