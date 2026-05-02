@@ -28,6 +28,7 @@ public:
     void disable() const { SendCommand(Command::DISABLE, 0x0000); }
     void update(const uint8_t feedback[8]);
 
+    void nop() const;
     /**
      * @brief 设置电机角度
      * @param _angle 设置的角度,[0,2pi]

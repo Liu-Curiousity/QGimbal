@@ -4,10 +4,24 @@
 
 #include "Gimbal.h"
 
+void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
+    static gimbal_pair<float> previous_imu_angle = imu_angle;
+    this->angle = {motor.yaw.angle, motor.pitch.angle};
+    this->speed = {motor.yaw.speed, motor.pitch.speed};
+    this->current = {motor.yaw.current, motor.pitch.current};
+    this->imu_angle = {imu_angle.yaw, imu_angle.pitch + angle.pitch};
+    this->imu_speed = {
+        wrap((imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
+        wrap((imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
+    };
+    previous_imu_angle = imu_angle;
+}
+
 void Gimbal::enable() {
     if (enabled) return; // 如果已经使能,则不重复使能
     if (!motor.yaw.enabled) motor.yaw.enable();
     if (!motor.pitch.enabled) motor.pitch.enable();
+    delay_ms(1); // 等待电机响应
     if (motor.yaw.enabled && motor.pitch.enabled)
         enabled = true;
 }
@@ -18,6 +32,7 @@ void Gimbal::disable() {
     motor.pitch.setCurrent(0);
     if (motor.yaw.enabled) motor.yaw.disable();
     if (motor.yaw.enabled) motor.pitch.disable();
+    delay_ms(1); // 等待电机响应
     if (!motor.yaw.enabled && !motor.pitch.enabled) {
         disable_stability();
         enabled = false;
@@ -27,8 +42,8 @@ void Gimbal::disable() {
 void Gimbal::enable_stability() {
     if (!enabled) return;          // 如果没有使能,则不能开启稳定模式
     if (stability_enabled) return; // 如果已经开启稳定模式,则不重复开启
-    pid_angle.yaw.target = imu_angle.yaw;
-    pid_angle.pitch.target = imu_angle.pitch + angle.pitch;
+    target_angle = imu_angle;
+    target_speed = imu_speed;
     stability_enabled = true;
 }
 
@@ -39,15 +54,25 @@ void Gimbal::disable_stability() {
 }
 
 void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
-    this->ctrl_type = ctrl_type;
+    const auto angle_ = stability_enabled ? imu_angle : angle;
     switch (ctrl_type) {
         case CtrlType::LowSpeedCtrl:
-            target_speed = value;
-            break;
-        case CtrlType::AngleCtrl:
-            target_angle = value;
+            target_low_speed = value;         // 设置低速控制速度
+            if (this->ctrl_type != ctrl_type) // 当前控制模式不是低速控制时, 才设置角度
+                target_angle = angle_;        // 使用当前角度为低速控制起始角度
             break;
         case CtrlType::StepAngleCtrl:
+            if (this->ctrl_type == ctrl_type)
+                target_angle += value;
+            else
+                target_angle = angle_ + value;
+            break;
+        case CtrlType::AngleCtrl:
+            // 使云台始终沿差值小于pi的方向转动
+            target_angle = {
+                angle_.yaw + wrap((value - angle_).yaw),
+                angle_.pitch + wrap((value - angle_).pitch)
+            };
             break;
         case CtrlType::SpeedCtrl:
             target_speed = value;
@@ -56,20 +81,17 @@ void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
             target_current = value;
             break;
     }
+    this->ctrl_type = ctrl_type;
 }
 
 void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     static gimbal_pair<float> previous_angle;
-
-    if (!enabled) return;
-
-    /** 1.更新状态 **/
-    angle = {motor.yaw.angle, motor.pitch.angle};
-    speed = {motor.yaw.speed, motor.pitch.speed};
-    current = {motor.yaw.current, motor.pitch.current};
-
-    imu_angle = {imu_angle_.yaw, imu_angle_.pitch + angle.pitch};
-    imu_speed = {};
+    if (!enabled) {
+        // 实时刷新状态
+        motor.yaw.nop();
+        motor.pitch.nop();
+        return;
+    }
 
     auto pitch_clamp = [*this](const float value) {
         if ((value > 0 && wrap((angle - center).pitch) > pitch_max) ||
@@ -78,15 +100,18 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
         return value;
     };
 
+    /** 1.更新状态 **/
+    update_attitude(imu_angle_);
     // 根据稳定模式选择反馈量, 稳定模式下使用IMU角度和速度, 非稳定模式下使用电机角度和速度
+    // TODO: 切换瞬间会使previous_angle突变,造成异常
     const auto angle_ = stability_enabled ? imu_angle : angle;
     const auto speed_ = stability_enabled ? imu_speed : speed;
 
     /** 2.速度闭环控制 **/
     switch (ctrl_type) {
         case CtrlType::LowSpeedCtrl:
-            target_angle.yaw += target_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
-            target_angle.pitch += pitch_clamp(target_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
+            target_angle.yaw += target_low_speed.yaw * Ts * 2 * std::numbers::pi_v<float> / 60;
+            target_angle.pitch += pitch_clamp(target_low_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
         case CtrlType::AngleCtrl:
         case CtrlType::StepAngleCtrl:
             if ((previous_angle - angle_).yaw > std::numbers::pi_v<float>)

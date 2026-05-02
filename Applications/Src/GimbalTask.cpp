@@ -24,37 +24,43 @@ Gimbal gimbal(
     {
         PID{
             PID::PID_type::position_type,
-            GIMBAL_SPEED_KP,
-            GIMBAL_SPEED_KI,
-            GIMBAL_SPEED_KD,
+            GIMBAL_SPEED_KP_YAW,
+            GIMBAL_SPEED_KI_YAW,
+            GIMBAL_SPEED_KD_YAW,
             2e3f,
             -2e3f,
-            FOC_MAX_CURRENT,
-            -FOC_MAX_CURRENT
+            GIMBAL_MAX_CURRENT,
+            -GIMBAL_MAX_CURRENT
         },
         PID{
             PID::PID_type::position_type,
-            GIMBAL_SPEED_KP,
-            GIMBAL_SPEED_KI,
-            GIMBAL_SPEED_KD,
+            GIMBAL_SPEED_KP_PITCH,
+            GIMBAL_SPEED_KI_PITCH,
+            GIMBAL_SPEED_KD_PITCH,
             2e3f,
             -2e3f,
-            FOC_MAX_CURRENT,
-            -FOC_MAX_CURRENT
+            GIMBAL_MAX_CURRENT,
+            -GIMBAL_MAX_CURRENT
         }
     },
     {
         PID{
             PID::PID_type::position_type,
-            5.0f, 0.1f, 110.0f,
+            GIMBAL_ANGLE_KP_YAW,
+            GIMBAL_ANGLE_KI_YAW,
+            GIMBAL_ANGLE_KD_YAW,
             1.8f, -1.8f,
-            1, -1
+            GIMBAL_MAX_CURRENT,
+            -GIMBAL_MAX_CURRENT
         },
         PID{
             PID::PID_type::position_type,
-            4.6f, 0.17f, 30.0f,
+            GIMBAL_ANGLE_KP_PITCH,
+            GIMBAL_ANGLE_KI_PITCH,
+            GIMBAL_ANGLE_KD_PITCH,
             1.8f, -1.8f,
-            1, -1
+            GIMBAL_MAX_CURRENT,
+            -GIMBAL_MAX_CURRENT
         }
     },
     0.001f
@@ -64,24 +70,8 @@ void CAN_InterfaceInit();
 
 void StartGimbalTask(void *argument) {
     CAN_InterfaceInit();
-    YawMotor.enable();
-    PitchMotor.enable();
-
-    // 上电复位云台角度
-    YawMotor.setAngle(yaw_center);
-    PitchMotor.setAngle(pitch_center);
-    // 等待陀螺仪初始化完成
-    osDelay(pdMS_TO_TICKS(2000));
-    YawMotor.setAngle(yaw_center);
-    PitchMotor.setAngle(pitch_center);
-
-    HAL_GPIO_WritePin(Laser_En_GPIO_Port,Laser_En_Pin, GPIO_PIN_SET); // 使能激光
-    gimbal.enable();
-    osDelay(50);
-    gimbal.enable_stability();
-
-    gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl, {0, 0});
     while (true) {
+        // TODO: IMU初始化完成后才进行闭环控制导致imu零点不等于电机零点
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
         gimbal.Ctrl_ISR({INS_angle[0], INS_angle[1]});
         xTaskNotifyGive((TaskHandle_t)TransmitTaskHandle); // 通知发送任务发送数据

@@ -38,6 +38,19 @@ public:
                 pitch - gimbal_pair.pitch
             };
         }
+
+        gimbal_pair<float>&& operator+(const gimbal_pair& gimbal_pair) const {
+            return {
+                yaw + gimbal_pair.yaw,
+                pitch + gimbal_pair.pitch
+            };
+        }
+
+        gimbal_pair<float>& operator+=(const gimbal_pair& gimbal_pair) {
+            yaw += gimbal_pair.yaw;
+            pitch += gimbal_pair.pitch;
+            return *this;
+        }
     };
 
     Gimbal(const gimbal_pair<QD4310&> motor, const gimbal_pair<float> center,
@@ -49,7 +62,7 @@ public:
     bool enabled{false};
     bool stability_enabled{false};
     gimbal_pair<float> imu_angle{0, 0}; // 单位:rad
-    gimbal_pair<float> imu_speed{0, 0}; // 单位:rad
+    gimbal_pair<float> imu_speed{0, 0}; // 单位:rpm
     gimbal_pair<float> angle{0, 0};     // 单位:rad
     gimbal_pair<float> speed{0, 0};     // 单位:rpm
     gimbal_pair<float> current{0, 0};   // 单位:A
@@ -75,16 +88,19 @@ public:
 private:
     CtrlType ctrl_type{CtrlType::CurrentCtrl}; // 当前控制类型
 
-    float Ts;                                // 控制周期,单位:s
-    gimbal_pair<float> target_angle{0, 0};   // 单位:rad
-    gimbal_pair<float> target_speed{0, 0};   // 单位:rpm
-    gimbal_pair<float> target_current{0, 0}; // 单位:A
-    gimbal_pair<float> center{0, 0};         // 云台中心位置,单位:rad
+    float Ts;                                  // 控制周期,单位:s
+    gimbal_pair<float> target_low_speed{0, 0}; // 单位:rpm
+    gimbal_pair<float> target_angle{0, 0};     // 单位:rad
+    gimbal_pair<float> target_speed{0, 0};     // 单位:rpm
+    gimbal_pair<float> target_current{0, 0};   // 单位:A
+    gimbal_pair<float> center{0, 0};           // 云台中心位置,单位:rad
     gimbal_pair<QD4310&> motor;
     gimbal_pair<PID> pid_speed;
     gimbal_pair<PID> pid_angle;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
+
+    void update_attitude(gimbal_pair<float> imu_angle);
 
     static float wrap(float value,
                       const float min = -std::numbers::pi_v<float>,

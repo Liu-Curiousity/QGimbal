@@ -40,6 +40,10 @@ void QD4310::update(const uint8_t feedback[8]) {
     angle = *(uint16_t *)(feedback + 6) * 2 * std::numbers::pi_v<float> / UINT16_MAX;
 }
 
+void QD4310::nop() const {
+    SendCommand(Command::NOP, 0x0000);
+}
+
 void QD4310::setAngle(float _angle) const {
     _angle = std::clamp(_angle, 0.0f, 2 * std::numbers::pi_v<float>); // 限制角度在[0, 2pi]范围内
     SendCommand(Command::ANGLE, _angle / 2 / std::numbers::pi_v<float> * UINT16_MAX);

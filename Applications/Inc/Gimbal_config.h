@@ -18,16 +18,22 @@
 #define GIMBAL_SOFTWARE_VERSION "2.0.0"
 
 /*==========================云台参数==========================*/
-#define FOC_MAX_CURRENT         1.65f   // 最大电流,单位A
+#define GIMBAL_MAX_CURRENT      1.65f   // 最大电流,单位A
 
 /*==========================配置参数==========================*/
-#define GIMBAL_MAX_SPEED           1000.0f   // 最大转速,单位rpm
+#define GIMBAL_MAX_SPEED        1000.0f   // 最大转速,单位rpm
 
-#define GIMBAL_SPEED_KP            3e-3f
-#define GIMBAL_SPEED_KI            3.9e-4f
-#define GIMBAL_SPEED_KD            0.0f
-#define GIMBAL_ANGLE_KP            1200.0f
-#define GIMBAL_ANGLE_KI            0.0f
-#define GIMBAL_ANGLE_KD            0.0f
+#define GIMBAL_SPEED_KP_YAW     1.3e-2f
+#define GIMBAL_SPEED_KI_YAW     3.9e-4f
+#define GIMBAL_SPEED_KD_YAW     0.0f
+#define GIMBAL_SPEED_KP_PITCH   3e-3f
+#define GIMBAL_SPEED_KI_PITCH   3.9e-4f
+#define GIMBAL_SPEED_KD_PITCH   0.0f
+#define GIMBAL_ANGLE_KP_YAW     5.0f
+#define GIMBAL_ANGLE_KI_YAW     0.1f
+#define GIMBAL_ANGLE_KD_YAW     110.0f
+#define GIMBAL_ANGLE_KP_PITCH   4.6f
+#define GIMBAL_ANGLE_KI_PITCH   0.17f
+#define GIMBAL_ANGLE_KD_PITCH   30.0f
 
 #endif //GIMBAL_CONFIG_H

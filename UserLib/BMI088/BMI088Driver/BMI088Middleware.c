@@ -1,6 +1,7 @@
 #include "BMI088Middleware.h"
 #include "spi.h"
 #include "cmsis_os.h"
+#include "sys_public.h"
 extern SPI_HandleTypeDef hspi1;
 
 void BMI088_GPIO_init(void) {}
@@ -8,12 +9,11 @@ void BMI088_GPIO_init(void) {}
 void BMI088_com_init(void) {}
 
 void BMI088_delay_ms(uint16_t ms) {
-    osDelay(ms);
+    delay_ms(ms);
 }
 
 void BMI088_delay_us(uint16_t us) {
-    //    delay_us(us);
-    osDelay(1);
+    delay_us(us);
 }
 
 
