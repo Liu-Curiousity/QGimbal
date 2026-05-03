@@ -19,10 +19,8 @@ void StartDebugTask(void *argument) {
     gimbal.Ctrl(Gimbal::CtrlType::AngleCtrl, {0, 0});
     // 等待陀螺仪初始化完成
     osDelay(pdMS_TO_TICKS(2000));
-    gimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl, {0, 0}); // 临时规避bug
     gimbal.enable_stability();
     HAL_GPIO_WritePin(Laser_En_GPIO_Port,Laser_En_Pin, GPIO_PIN_SET); // 使能激光
-    osDelay(50);
     gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl, {0, 0});
     while (true) {
         osDelay(pdMS_TO_TICKS(2000));

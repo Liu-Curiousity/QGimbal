@@ -86,6 +86,7 @@ void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
 
 void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     static gimbal_pair<float> previous_angle;
+    static gimbal_pair<float> previous_imu_angle;
     if (!enabled) {
         // 实时刷新状态
         motor.yaw.nop();
@@ -103,8 +104,8 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     /** 1.更新状态 **/
     update_attitude(imu_angle_);
     // 根据稳定模式选择反馈量, 稳定模式下使用IMU角度和速度, 非稳定模式下使用电机角度和速度
-    // TODO: 切换瞬间会使previous_angle突变,造成异常
     const auto angle_ = stability_enabled ? imu_angle : angle;
+    const auto previous_angle_ = stability_enabled ? previous_imu_angle : previous_angle;
     const auto speed_ = stability_enabled ? imu_speed : speed;
 
     /** 2.速度闭环控制 **/
@@ -114,14 +115,14 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
             target_angle.pitch += pitch_clamp(target_low_speed.pitch) * Ts * 2 * std::numbers::pi_v<float> / 60;
         case CtrlType::AngleCtrl:
         case CtrlType::StepAngleCtrl:
-            if ((previous_angle - angle_).yaw > std::numbers::pi_v<float>)
+            if ((previous_angle_ - angle_).yaw > std::numbers::pi_v<float>)
                 target_angle.yaw -= 2 * std::numbers::pi_v<float>;
-            else if ((previous_angle - angle_).yaw < -std::numbers::pi_v<float>)
+            else if ((previous_angle_ - angle_).yaw < -std::numbers::pi_v<float>)
                 target_angle.yaw += 2 * std::numbers::pi_v<float>;
 
-            if ((previous_angle - angle_).pitch > std::numbers::pi_v<float>)
+            if ((previous_angle_ - angle_).pitch > std::numbers::pi_v<float>)
                 target_angle.pitch -= 2 * std::numbers::pi_v<float>;
-            else if ((previous_angle - angle_).pitch < -std::numbers::pi_v<float>)
+            else if ((previous_angle_ - angle_).pitch < -std::numbers::pi_v<float>)
                 target_angle.pitch += 2 * std::numbers::pi_v<float>;
 
             pid_angle.yaw.target = target_angle.yaw;
@@ -145,5 +146,6 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
             motor.pitch.setCurrent(target_current.pitch);
             break;
     }
-    previous_angle = angle_;
+    previous_angle = angle;
+    previous_imu_angle = imu_angle;
 }
