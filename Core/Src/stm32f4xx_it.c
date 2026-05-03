@@ -262,7 +262,7 @@ void SPI1_IRQHandler(void)
 /**
   * @brief This function handles DMA2 stream0 global interrupt.
   */
-void DMA2_Stream0_IRQHandler(void)
+__weak void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
 
