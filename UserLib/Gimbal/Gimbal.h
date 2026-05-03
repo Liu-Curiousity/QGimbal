@@ -60,6 +60,7 @@ public:
         motor(motor), pid_speed(pid_speed), pid_angle(pid_angle) {}
 
     bool enabled{false};
+    bool started{false};
     bool stability_enabled{false};
     gimbal_pair<float> imu_angle{0, 0}; // 单位:rad
     gimbal_pair<float> imu_speed{0, 0}; // 单位:rpm
@@ -69,6 +70,9 @@ public:
 
     void enable();
     void disable();
+    void start();
+    void stop();
+    void reset_imu();
     void enable_stability();
     void disable_stability();
 

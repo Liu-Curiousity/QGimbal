@@ -71,8 +71,10 @@ void CAN_InterfaceInit();
 
 void StartGimbalTask(void *argument) {
     CAN_InterfaceInit();
+    // 等待第一次接收到数据，表明IMU初始化完成，此时启动gimbal
+    while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
+    gimbal.enable();
     while (true) {
-        // TODO: IMU初始化完成后才进行闭环控制导致imu零点不等于电机零点
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
         gimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
         xTaskNotifyGive((TaskHandle_t)TransmitTaskHandle); // 通知发送任务发送数据

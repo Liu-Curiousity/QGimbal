@@ -1,6 +1,3 @@
-//
-// Created by 26757 on 2025/12/29.
-//
 #include <algorithm>
 #include <cstring>
 #include "task_public.h"
@@ -10,6 +7,7 @@
 #include "Gimbal.h"
 #include "BMI088.h"
 #include "queue.h"
+#include "sys_public.h"
 
 // 左下角为正方向
 struct TransmitPackage {
@@ -68,6 +66,9 @@ void StartTransmitTask(void *argument) {
 void StartReceiveTask(void *argument) {
     receive_package_queue = xQueueCreate(5, sizeof(ReceivePackage));
     ReceivePackage receive_package{};
+    // 1.等待gimbal使能
+    while (!gimbal.enabled)
+        delay_ms(10);
     HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(ReceivePackage));
     __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
     while (true) {

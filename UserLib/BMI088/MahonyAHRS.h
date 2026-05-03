@@ -10,6 +10,12 @@ public:
 
     float q[4]{1, 0, 0, 0};
 
+    void reset() {
+        q[0] = 1;
+        q[1] = q[2] = q[3] = 0;
+        integralFBx = integralFBy = integralFBz = 0;
+    }
+
     void update(float gx, float gy, float gz, float ax, float ay, float az) {
         float recipNorm;
         float halfvx, halfvy, halfvz;

@@ -23,6 +23,7 @@ volatile uint8_t accel_update_flag = 0;
 volatile uint8_t accel_temp_update_flag = 0;
 
 BMI088 bmi088;
+MahonyAHRS AHRS{1000};
 
 void SPI1_DMA_init();
 
@@ -31,7 +32,6 @@ void StartImuTask(void *argument) {
         osDelay(100);
     }
 
-    MahonyAHRS AHRS{1000};
     SPI1_DMA_init();
     while (true) {
         //wait spi tansmit done
@@ -142,6 +142,7 @@ static void imu_cmd_spi_dma() {
     }
 }
 
+// 需将另一个DMA2_Stream0_IRQHandler()函数设置为__
 extern "C" void DMA2_Stream0_IRQHandler() {
     if (__HAL_DMA_GET_FLAG(hspi1.hdmarx, __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx)) != RESET) {
         __HAL_DMA_CLEAR_FLAG(hspi1.hdmarx, __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx));
