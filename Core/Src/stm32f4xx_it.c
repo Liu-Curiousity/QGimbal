@@ -48,7 +48,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-
+extern void IMU_DMA2_Stream0_IRQHandler();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -262,10 +262,11 @@ void SPI1_IRQHandler(void)
 /**
   * @brief This function handles DMA2 stream0 global interrupt.
   */
-__weak void DMA2_Stream0_IRQHandler(void)
+void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
-
+  IMU_DMA2_Stream0_IRQHandler();
+  return;
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_spi1_rx);
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */

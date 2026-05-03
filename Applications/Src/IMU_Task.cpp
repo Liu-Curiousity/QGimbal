@@ -142,8 +142,7 @@ static void imu_cmd_spi_dma() {
     }
 }
 
-// 需将另一个DMA2_Stream0_IRQHandler()函数设置为__
-extern "C" void DMA2_Stream0_IRQHandler() {
+extern "C" void IMU_DMA2_Stream0_IRQHandler() {
     if (__HAL_DMA_GET_FLAG(hspi1.hdmarx, __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx)) != RESET) {
         __HAL_DMA_CLEAR_FLAG(hspi1.hdmarx, __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx));
 
