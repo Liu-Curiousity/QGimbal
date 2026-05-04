@@ -6,10 +6,10 @@ extern MahonyAHRS AHRS;
 
 void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
     static gimbal_pair<float> previous_imu_angle = imu_angle;
-    this->angle = {motor.yaw.angle, motor.pitch.angle};
-    this->speed = {motor.yaw.speed, motor.pitch.speed};
-    this->current = {motor.yaw.current, motor.pitch.current};
-    this->imu_angle = {imu_angle.yaw, imu_angle.pitch + angle.pitch};
+    this->motor_angle = {motor.yaw.angle, motor.pitch.angle};
+    this->motor_speed = {motor.yaw.speed, motor.pitch.speed};
+    this->motor_current = {motor.yaw.current, motor.pitch.current};
+    this->imu_angle = {imu_angle.yaw, imu_angle.pitch + motor_angle.pitch};
     this->imu_speed = {
         wrap((imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
         wrap((imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
@@ -66,7 +66,7 @@ void Gimbal::disable_stability() {
 }
 
 void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
-    const auto angle_ = stability_enabled ? imu_angle : angle;
+    const auto angle_ = stability_enabled ? imu_angle : motor_angle;
     switch (ctrl_type) {
         case CtrlType::LowSpeedCtrl:
             target_low_speed = value;         // 设置低速控制速度
@@ -107,8 +107,8 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     }
 
     auto pitch_clamp = [*this](const float value) {
-        if ((value > 0 && wrap((angle - center).pitch) > pitch_max) ||
-            (value < 0 && wrap((angle - center).pitch) < -pitch_max))
+        if ((value > 0 && wrap((motor_angle - center).pitch) > pitch_max) ||
+            (value < 0 && wrap((motor_angle - center).pitch) < -pitch_max))
             return 0.0f;
         return value;
     };
@@ -116,9 +116,9 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     /** 1.更新状态 **/
     update_attitude(imu_angle_);
     // 根据稳定模式选择反馈量, 稳定模式下使用IMU角度和速度, 非稳定模式下使用电机角度和速度
-    const auto angle_ = stability_enabled ? imu_angle : angle;
+    const auto angle_ = stability_enabled ? imu_angle : motor_angle;
     const auto previous_angle_ = stability_enabled ? previous_imu_angle : previous_angle;
-    const auto speed_ = stability_enabled ? imu_speed : speed;
+    const auto speed_ = stability_enabled ? imu_speed : motor_speed;
 
     /** 2.速度闭环控制 **/
     if (started) {
@@ -163,6 +163,6 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
         motor.yaw.setCurrent(0);
         motor.pitch.setCurrent(0);
     }
-    previous_angle = angle;
+    previous_angle = motor_angle;
     previous_imu_angle = imu_angle;
 }

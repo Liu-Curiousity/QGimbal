@@ -77,7 +77,6 @@ void StartGimbalTask(void *argument) {
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
         gimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
-        xTaskNotifyGive((TaskHandle_t)TransmitTaskHandle); // 通知发送任务发送数据
     }
 }
 

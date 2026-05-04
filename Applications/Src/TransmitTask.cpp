@@ -5,106 +5,156 @@
 #include "cmsis_os.h"
 #include "usart.h"
 #include "Gimbal.h"
-#include "BMI088.h"
 #include "queue.h"
 #include "sys_public.h"
 
 // 左下角为正方向
-struct TransmitPackage {
-    float imu_angles[3];       // yaw, pitch, roll, in rad
-    float yaw_imu_angle;       // end point yaw angle in rad
-    float pitch_imu_angle;     // end point pitch angle in rad
-    float yaw_motor_angle;     // yaw motor angle in rad
-    float pitch_motor_angle;   // pitch motor angle in rad
-    uint8_t laser_enabled;     // 0: disabled, 1: enabled
-    uint8_t enabled;           // 0: disabled, 1: enabled
-    uint8_t stability_enabled; // 0: disabled, 1: enabled
-    uint8_t check_sum;         // checksum
-} transmit_package;
+struct __attribute__((packed)) TxPackage {
+    uint8_t status;                           // bit 0: enabled, bit 1:stability_enabled, bit 2: laser_enabled
+    Gimbal::gimbal_pair<float> imu_speed;     // end point speed, in rpm
+    Gimbal::gimbal_pair<float> imu_angle;     // end point angle, in rad
+    Gimbal::gimbal_pair<float> motor_current; // motor current, in A
+    Gimbal::gimbal_pair<float> motor_speed;   // motor speed, in rpm
+    Gimbal::gimbal_pair<float> motor_angle;   // motor angle, in rad
+    uint8_t crc8;                             // CRC8
+} tx_package;
 
-struct ReceivePackage {
-    float yaw_speed;           // in rpm
-    float pitch_speed;         // in rpm
-    uint8_t laser_enabled;     // 0: disable, 1: enable, other: no action
-    uint8_t enabled;           // 0: disable, 1: enable, other: no action
-    uint8_t stability_enabled; // 0: disable, 1: enable, other: no action
-    uint8_t check_sum;         // checksum
+enum class CmdType : uint8_t {
+    NOP = 0x00,              // 无操作
+    Enable = 0x01,           // 使能
+    Disable = 0x02,          // 失能
+    CurrentCtrl = 0x03,      // 电流控制
+    SpeedCtrl = 0x04,        // 速度控制
+    AngleCtrl = 0x05,        // 角度控制
+    LowSpeedCtrl = 0x06,     // 低速控制
+    StepAngleCtrl = 0x07,    // 角度递增控制
+    EnableStability = 0xFF,  // 使能自稳
+    DisableStability = 0xFE, // 失能自稳
+    EnableLaser = 0xFD,      // 使能激光
+    DisableLaser = 0xFC,     // 失能激光
+    ResetIMU = 0xFB,         // 复位IMU(角度调零)
 };
 
-xQueueHandle receive_package_queue;
+struct __attribute__((packed)) RxPackage {
+    CmdType cmd_type;                  // 命令类型
+    Gimbal::gimbal_pair<int16_t> data; // 命令数据
+};
 
 extern Gimbal gimbal;     // 云台
-extern QD4310 YawMotor;   // 云台偏航电机
-extern QD4310 PitchMotor; // 云台俯仰电机
-extern BMI088 bmi088;
 
-uint8_t UART6_RxBuffer[sizeof(ReceivePackage)];
+xQueueHandle receive_package_queue;
+uint8_t UART6_RxBuffer[sizeof(RxPackage)];
 
-void StartTransmitTask(void *argument) {
-    while (true) {
-        while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
-        transmit_package.laser_enabled = HAL_GPIO_ReadPin(Laser_En_GPIO_Port, Laser_En_Pin);
-        transmit_package.enabled = gimbal.enabled;
-        transmit_package.stability_enabled = gimbal.stability_enabled;
-        transmit_package.imu_angles[0] = bmi088.yaw;
-        transmit_package.imu_angles[1] = bmi088.pitch;
-        transmit_package.imu_angles[2] = bmi088.roll;
-        transmit_package.yaw_imu_angle = gimbal.imu_angle.yaw;
-        transmit_package.pitch_imu_angle = gimbal.imu_angle.pitch;
-        transmit_package.yaw_motor_angle = YawMotor.angle;
-        transmit_package.pitch_motor_angle = PitchMotor.angle;
-        // 计算校验和
-        uint8_t checksum = 0;
-        for (size_t i = 0; i < sizeof(TransmitPackage) - sizeof(uint8_t); ++i) {
-            checksum += reinterpret_cast<uint8_t *>(&transmit_package)[i];
-        }
-        transmit_package.check_sum = checksum;
-        HAL_UART_Transmit_DMA(&huart6, reinterpret_cast<const uint8_t *>(&transmit_package), sizeof(TransmitPackage));
-    }
-}
+uint8_t CRC8(const uint8_t *data, uint32_t len, uint8_t polynomial, uint8_t init,
+             uint8_t xor_out, bool input_invert, bool output_invert);
 
-void StartReceiveTask(void *argument) {
-    receive_package_queue = xQueueCreate(5, sizeof(ReceivePackage));
-    ReceivePackage receive_package{};
+void StartCommunicateTask(void *argument) {
+    receive_package_queue = xQueueCreate(5, sizeof(RxPackage));
+    RxPackage rx_package{};
+
     // 1.等待gimbal使能
     while (!gimbal.enabled)
         delay_ms(10);
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(ReceivePackage));
+
+    // 2.打开串口
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(UART6_RxBuffer));
     __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
+
     while (true) {
-        xQueueReceive(receive_package_queue, &receive_package, portMAX_DELAY);
-        // 校验和
-        uint8_t checksum = 0;
-        for (size_t i = 0; i < sizeof(ReceivePackage) - sizeof(uint8_t); ++i) {
-            checksum += UART6_RxBuffer[i];
+        xQueueReceive(receive_package_queue, &rx_package, portMAX_DELAY);
+
+        switch (rx_package.cmd_type) {
+            case CmdType::NOP: // NOP指令,只发送反馈报文
+                break;
+            case CmdType::Enable: // 使能指令
+                gimbal.start();
+                break;
+            case CmdType::Disable: // 失能指令
+                gimbal.stop();
+                break;
+            case CmdType::CurrentCtrl: // 电流控制
+                gimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl,
+                            {
+                                rx_package.data.yaw * 10.0f / INT16_MAX,
+                                rx_package.data.pitch * 10.0f / INT16_MAX
+                            });
+                break;
+            case CmdType::SpeedCtrl: // 速度控制
+                gimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl,
+                            {
+                                rx_package.data.yaw * 1000.0f / INT16_MAX,
+                                rx_package.data.pitch * 1000.0f / INT16_MAX
+                            });
+                break;
+            case CmdType::AngleCtrl: // 角度控制
+                gimbal.Ctrl(Gimbal::CtrlType::AngleCtrl,
+                            {
+                                rx_package.data.yaw * 2 * std::numbers::pi_v<float> / UINT16_MAX,
+                                rx_package.data.pitch * 2 * std::numbers::pi_v<float> / UINT16_MAX
+                            });
+                break;
+            case CmdType::LowSpeedCtrl: // 低速控制
+                gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl,
+                            {
+                                rx_package.data.yaw * 1000.0f / INT16_MAX,
+                                rx_package.data.pitch * 1000.0f / INT16_MAX
+                            });
+                break;
+            case CmdType::StepAngleCtrl: // 角度递增
+                gimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl,
+                            {
+                                rx_package.data.yaw * 2 * std::numbers::pi_v<float> / INT16_MAX,
+                                rx_package.data.pitch * 2 * std::numbers::pi_v<float> / INT16_MAX
+                            });
+                break;
+            case CmdType::EnableStability: // 使能自稳
+                gimbal.enable_stability();
+                break;
+            case CmdType::DisableStability: // 失能自稳
+                gimbal.disable_stability();
+                break;
+            case CmdType::EnableLaser: // 使能激光
+                HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin, GPIO_PIN_SET);
+                break;
+            case CmdType::DisableLaser: // 失能激光
+                HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin, GPIO_PIN_RESET);
+                break;
+            case CmdType::ResetIMU: // 复位IMU(角度调零)
+                gimbal.reset_imu();
+                break;
+            default:
+                break;
         }
-        if (checksum == reinterpret_cast<ReceivePackage *>(UART6_RxBuffer)->check_sum) {
-            if (receive_package.laser_enabled == 0 || receive_package.laser_enabled == 1)
-                HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin,
-                                  receive_package.laser_enabled ? GPIO_PIN_SET : GPIO_PIN_RESET);
-            if (receive_package.enabled == 0 || receive_package.enabled == 1) {
-                receive_package.enabled ? gimbal.enable() : gimbal.disable();
-            }
-            if (receive_package.stability_enabled == 0 || receive_package.stability_enabled == 1) {
-                receive_package.stability_enabled ? gimbal.enable_stability() : gimbal.disable_stability();
-            }
-            gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl,
-                        {std::clamp(receive_package.yaw_speed, -50.0f, 50.0f),
-                        std::clamp(receive_package.pitch_speed, -50.0f, 50.0f)});
+        // 是合法命令则发送反馈报文
+        if (rx_package.cmd_type <= CmdType::StepAngleCtrl ||
+            rx_package.cmd_type >= CmdType::ResetIMU) {
+            tx_package.status = gimbal.enabled | gimbal.stability_enabled << 1 |
+                                HAL_GPIO_ReadPin(Laser_En_GPIO_Port, Laser_En_Pin) << 2;
+            tx_package.imu_speed = gimbal.imu_speed;
+            tx_package.imu_angle = gimbal.imu_angle;
+            tx_package.motor_current = gimbal.motor_current;
+            tx_package.motor_speed = gimbal.motor_speed;
+            tx_package.motor_angle = gimbal.motor_angle;
+            tx_package.crc8 = CRC8(reinterpret_cast<const uint8_t *>(&tx_package), sizeof(tx_package) - 1,
+                                   0x07, 0x00, 0x00, false, false);
+            HAL_UART_Transmit_DMA(&huart6, reinterpret_cast<const uint8_t *>(&tx_package),
+                                  sizeof(TxPackage));
         }
     }
 }
-
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     BaseType_t xHigherPriorityTaskWoken;
     if (huart->Instance == huart6.Instance) {
-        if (Size == sizeof(ReceivePackage)) {
+        // 如果数据长度匹配且CRC8校验通过,进行处理
+        if (Size == sizeof(RxPackage) + 1 &&
+            CRC8(UART6_RxBuffer, 4, 0x07, 0x00, 0x00, false, false) == UART6_RxBuffer[4]) {
+            // cmd:1 byte, data:4 bytes, crc8:1 byte
             xQueueSendToBackFromISR(receive_package_queue, UART6_RxBuffer, &xHigherPriorityTaskWoken);
             portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
         }
         std::fill_n(UART6_RxBuffer, sizeof(UART6_RxBuffer), 0);
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(ReceivePackage));
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart6, UART6_RxBuffer, sizeof(UART6_RxBuffer));
         __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT); // 关闭DMA半传输中断
     }
 }

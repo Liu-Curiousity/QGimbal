@@ -32,24 +32,34 @@ public:
         T yaw;
         T pitch;
 
-        gimbal_pair<float> operator-(const gimbal_pair& gimbal_pair) const {
+        gimbal_pair operator-(const gimbal_pair& gimbal_pair) const {
             return {
                 yaw - gimbal_pair.yaw,
                 pitch - gimbal_pair.pitch
             };
         }
 
-        gimbal_pair<float>&& operator+(const gimbal_pair& gimbal_pair) const {
+        gimbal_pair&& operator+(const gimbal_pair& gimbal_pair) const {
             return {
                 yaw + gimbal_pair.yaw,
                 pitch + gimbal_pair.pitch
             };
         }
 
-        gimbal_pair<float>& operator+=(const gimbal_pair& gimbal_pair) {
+        gimbal_pair& operator+=(const gimbal_pair& gimbal_pair) {
             yaw += gimbal_pair.yaw;
             pitch += gimbal_pair.pitch;
             return *this;
+        }
+
+        template <typename U>
+        gimbal_pair operator*(U x) const {
+            return {yaw * x, pitch * x};
+        }
+
+        template <typename U>
+        gimbal_pair operator/(U x) const {
+            return {yaw / x, pitch / x};
         }
     };
 
@@ -62,12 +72,13 @@ public:
     bool enabled{false};
     bool started{false};
     bool stability_enabled{false};
-    gimbal_pair<float> imu_angle{0, 0}; // 单位:rad
-    gimbal_pair<float> imu_speed{0, 0}; // 单位:rpm
-    gimbal_pair<float> angle{0, 0};     // 单位:rad
-    gimbal_pair<float> speed{0, 0};     // 单位:rpm
-    gimbal_pair<float> current{0, 0};   // 单位:A
+    gimbal_pair<float> imu_angle{0, 0};     // 单位:rad
+    gimbal_pair<float> imu_speed{0, 0};     // 单位:rpm
+    gimbal_pair<float> motor_angle{0, 0};   // 单位:rad
+    gimbal_pair<float> motor_speed{0, 0};   // 单位:rpm
+    gimbal_pair<float> motor_current{0, 0}; // 单位:A
 
+    [[nodiscard]] CtrlType getCtrlType() const { return ctrl_type; } // 获取控制模式
     void enable();
     void disable();
     void start();

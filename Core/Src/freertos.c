@@ -66,19 +66,12 @@ osThreadId_t GimbalTaskHandle;
 const osThreadAttr_t GimbalTask_attributes = {
   .name = "GimbalTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for TransmitTask */
-osThreadId_t TransmitTaskHandle;
-const osThreadAttr_t TransmitTask_attributes = {
-  .name = "TransmitTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for ReceiveTask */
-osThreadId_t ReceiveTaskHandle;
-const osThreadAttr_t ReceiveTask_attributes = {
-  .name = "ReceiveTask",
+/* Definitions for CommunicateTask */
+osThreadId_t CommunicateTaskHandle;
+const osThreadAttr_t CommunicateTask_attributes = {
+  .name = "CommunicateTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -98,8 +91,7 @@ const osThreadAttr_t StartShell_attributes = {
 void StartDebugTask(void *argument);
 extern void StartImuTask(void *argument);
 extern void StartGimbalTask(void *argument);
-extern void StartTransmitTask(void *argument);
-extern void StartReceiveTask(void *argument);
+extern void StartCommunicateTask(void *argument);
 extern void StartStartShell(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
@@ -141,11 +133,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of GimbalTask */
   GimbalTaskHandle = osThreadNew(StartGimbalTask, NULL, &GimbalTask_attributes);
 
-  /* creation of TransmitTask */
-  TransmitTaskHandle = osThreadNew(StartTransmitTask, NULL, &TransmitTask_attributes);
-
-  /* creation of ReceiveTask */
-  ReceiveTaskHandle = osThreadNew(StartReceiveTask, NULL, &ReceiveTask_attributes);
+  /* creation of CommunicateTask */
+  CommunicateTaskHandle = osThreadNew(StartCommunicateTask, NULL, &CommunicateTask_attributes);
 
   /* creation of StartShell */
   StartShellHandle = osThreadNew(StartStartShell, NULL, &StartShell_attributes);

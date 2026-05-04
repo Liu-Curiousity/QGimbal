@@ -14,11 +14,13 @@
 
 #include <algorithm>
 
+#include "Gimbal.h"
 #include "Gimbal_config.h"
 #include "shell_cpp.h"
 #include "usbd_cdc_if.h"
 #include "retarget.h"
 
+extern Gimbal gimbal;
 extern Shell shell;
 
 static float atof_lite(const char *s) {
@@ -72,18 +74,25 @@ void print_version() {
     PRINT("Software version %s", GIMBAL_SOFTWARE_VERSION);
 }
 
-// void gimbal_status() {
-//     PRINT("Motor Status:");
-//     PRINT("  CAN ID       : %03d", qd4310.ID);
-//     PRINT("  Status       : %s", qd4310.started ? "enabled" : "disabled");
-//     PRINT("  CtrlMode     : %s",
-//           qd4310.getCtrlType() == QD4310::CtrlType::CurrentCtrl ? "CurrentCtrl" :
-//           qd4310.getCtrlType() == QD4310::CtrlType::SpeedCtrl ? "SpeedCtrl" : "AngleCtrl");
-//     PRINT("  Current      : %.2f A", qd4310.getCurrent());
-//     PRINT("  Speed        : %.2f rpm", qd4310.getSpeed());
-//     PRINT("  Angle        : %.2f rad", qd4310.getAngle());
-//     PRINT("  Voltage      : %.2f V", qd4310.getVoltage());
-// }
+void gimbal_status() {
+    PRINT("Motor Status:");
+    PRINT("  Enabled            : %s", gimbal.enabled ? "Yes" : "No");
+    PRINT("  StabilityEnabled   : %s", gimbal.stability_enabled ? "Yes" : "No");
+    PRINT("  LaserEnabled       : %s", HAL_GPIO_ReadPin(Laser_En_GPIO_Port, Laser_En_Pin) ? "Yes" : "No");
+    PRINT("  CtrlMode           : %s",
+          gimbal.getCtrlType() == Gimbal::CtrlType::CurrentCtrl ? "CurrentCtrl" :
+          gimbal.getCtrlType() == Gimbal::CtrlType::SpeedCtrl ? "SpeedCtrl" :
+          gimbal.getCtrlType() == Gimbal::CtrlType::AngleCtrl ? "AngleCtrl" :
+          gimbal.getCtrlType() == Gimbal::CtrlType::StepAngleCtrl ? "StepAngleCtrl" :
+          gimbal.getCtrlType() == Gimbal::CtrlType::LowSpeedCtrl ? "LowSpeedCtrl" : "Unknown");
+    PRINT("  IMU Angle          : yaw:%.2f, pitch:%.2f A", gimbal.imu_angle.yaw, gimbal.imu_angle.pitch);
+    PRINT("  IMU Speed          : yaw:%.2f, pitch:%.2f A", gimbal.imu_speed.yaw, gimbal.imu_speed.pitch);
+    PRINT("  Current            : yaw:%.2f, pitch:%.2f A", gimbal.motor_current.yaw, gimbal.motor_current.pitch);
+    PRINT("  Speed              : yaw:%.2f, pitch:%.2f A", gimbal.motor_speed.yaw, gimbal.motor_speed.pitch);
+    PRINT("  Angle              : yaw:%.2f, pitch:%.2f A", gimbal.motor_angle.yaw, gimbal.motor_angle.pitch);
+    // TODO: 显示电压
+    // PRINT("  Voltage            : %.2f V", qd4310.getVoltage());
+}
 
 // void gimbal_config_help() {
 //     PRINT("Usage: config [--list | PARAM_PATH VALUE | key=value]");
@@ -103,7 +112,6 @@ void print_version() {
 //     PRINT("  pid.angle.kd       : Angle PID derivative gain");
 //     PRINT("  limit.speed        : Speed limit in rpm");
 //     PRINT("  limit.current      : Current limit in A");
-//     PRINT("  can.id             : CAN ID of the motor (0-7)");
 //     PRINT("  uart.baud_rate     : UART BaudRate of the motor (50K-10M)");
 //     PRINT("  zero_pos           : Position zero offset in rad");
 // }
@@ -287,19 +295,19 @@ void print_version() {
 //     }
 // }
 
-// void gimbal_enable() {
-//     qd4310.start();
-//     if (qd4310.started) {
-//         PRINT("QDrive enabled");
-//     } else
-//         PRINT("enable failed, please calibrate first");
-// }
+void gimbal_enable() {
+    gimbal.start();
+    if (gimbal.started) {
+        PRINT("QGimbal enabled");
+    } else
+        PRINT("enable failed, please calibrate first");
+}
 
-// void gimbal_disable() {
-//     qd4310.stop();
-//     PRINT("QDrive disabled");
-// }
-//
+void gimbal_disable() {
+    gimbal.stop();
+    PRINT("QGimbal disabled");
+}
+
 // void gimbal_calibrate() {
 //     if (qd4310.started) {
 //         PRINT("QDrive is running, please disable it first");
@@ -394,19 +402,15 @@ SHELL_EXPORT_CMD(
 //     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
 //     calibrate, gimbal_calibrate, Calibrate FOC system
 // );
-// SHELL_EXPORT_CMD(
-//     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-//     disable, gimbal_disable, Disable FOC control
-// );
-// SHELL_EXPORT_CMD(
-//     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-//     enable, gimbal_enable, Enable FOC control
-// );
-// SHELL_EXPORT_CMD(
-//     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-//     status, gimbal_status, Show current motor status
-// );
-// SHELL_EXPORT_CMD(
-//     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-//     info, gimbal_info, Show hardware information
-// );
+SHELL_EXPORT_CMD(
+    SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
+    disable, gimbal_disable, Disable FOC control
+);
+SHELL_EXPORT_CMD(
+    SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
+    enable, gimbal_enable, Enable FOC control
+);
+SHELL_EXPORT_CMD(
+    SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
+    status, gimbal_status, Show current motor status
+);
