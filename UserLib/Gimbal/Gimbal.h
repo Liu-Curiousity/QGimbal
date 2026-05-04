@@ -63,12 +63,21 @@ public:
         }
     };
 
+    /**
+     * @brief Gimbal构造函数
+     * @param motor yaw轴和pitch轴电机对象引用
+     * @param center yaw轴和pitch轴云台中心位置,单位:rad
+     * @param pid_speed yaw轴和pitch轴速度PID
+     * @param pid_angle yaw轴和pitch轴角度PID
+     * @param ctrl_ts 控制周期,单位:s
+     */
     Gimbal(const gimbal_pair<QD4310&> motor, const gimbal_pair<float> center,
            const gimbal_pair<PID>& pid_speed, const gimbal_pair<PID>& pid_angle,
            const float ctrl_ts) :
-        Ts(ctrl_ts), center(center),
-        motor(motor), pid_speed(pid_speed), pid_angle(pid_angle) {}
+        pid_speed(pid_speed), pid_angle(pid_angle),
+        Ts(ctrl_ts), center(center), motor(motor) {}
 
+    bool initialized{false};
     bool enabled{false};
     bool started{false};
     bool stability_enabled{false};
@@ -79,6 +88,7 @@ public:
     gimbal_pair<float> motor_current{0, 0}; // 单位:A
 
     [[nodiscard]] CtrlType getCtrlType() const { return ctrl_type; } // 获取控制模式
+    void init();
     void enable();
     void disable();
     void start();
@@ -100,6 +110,14 @@ public:
      */
     void Ctrl_ISR(gimbal_pair<float> imu_angle_);
 
+protected:
+    gimbal_pair<PID> pid_speed;
+    gimbal_pair<PID> pid_angle;
+
+    static float wrap(float value,
+                      float min = -std::numbers::pi_v<float>,
+                      float max = std::numbers::pi_v<float>);
+
 private:
     CtrlType ctrl_type{CtrlType::CurrentCtrl}; // 当前控制类型
 
@@ -110,19 +128,10 @@ private:
     gimbal_pair<float> target_current{0, 0};   // 单位:A
     gimbal_pair<float> center{0, 0};           // 云台中心位置,单位:rad
     gimbal_pair<QD4310&> motor;
-    gimbal_pair<PID> pid_speed;
-    gimbal_pair<PID> pid_angle;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
 
     void update_attitude(gimbal_pair<float> imu_angle);
-
-    static float wrap(float value,
-                      const float min = -std::numbers::pi_v<float>,
-                      const float max = std::numbers::pi_v<float>) {
-        value = std::fmod(value - min, max - min);
-        return value < 0 ? value + max : value + min;
-    }
 };
 
 #endif //QGIMBAL_GIMBAL_H

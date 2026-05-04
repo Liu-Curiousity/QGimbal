@@ -46,6 +46,7 @@ add_subdirectory(BSP/retarget)
 add_subdirectory(BSP/Storage)
 add_subdirectory(UserLib/BMI088)
 add_subdirectory(UserLib/Gimbal)
+add_subdirectory(UserLib/QGimbal)
 add_subdirectory(UserLib/LetterShell)
 add_subdirectory(UserLib/QD4310)
 add_subdirectory(UserLib/Storage)
@@ -83,6 +84,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         # Add user defined libraries
         bmi088
         gimbal
+        qgimbal
         qd4310
         retarget
         letter_shell

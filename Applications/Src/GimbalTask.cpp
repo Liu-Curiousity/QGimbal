@@ -7,9 +7,10 @@
 #include "can.h"
 #include "QD4310.h"
 #include "PID.h"
-#include "Gimbal.h"
+#include "QGimbal.h"
 #include "Gimbal_config.h"
 #include "BMI088.h"
+#include "Storage_EmbeddedFlash.h"
 
 constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: rad
 constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
@@ -19,7 +20,7 @@ extern BMI088 bmi088;
 QD4310 YawMotor(&hcan1, 0x00);   // 云台偏航电机
 QD4310 PitchMotor(&hcan1, 0x01); // 云台俯仰电机
 
-Gimbal gimbal(
+QGimbal qgimbal(
     {YawMotor, PitchMotor},
     {yaw_center, pitch_center},
     {
@@ -64,7 +65,7 @@ Gimbal gimbal(
             -GIMBAL_MAX_CURRENT
         }
     },
-    0.001f
+    0.001f,storage
 );
 
 void CAN_InterfaceInit();
@@ -73,10 +74,11 @@ void StartGimbalTask(void *argument) {
     CAN_InterfaceInit();
     // 等待第一次接收到数据，表明IMU初始化完成，此时启动gimbal
     while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
-    gimbal.enable();
+    qgimbal.init();
+    qgimbal.enable();
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
-        gimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
+        qgimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
     }
 }
 

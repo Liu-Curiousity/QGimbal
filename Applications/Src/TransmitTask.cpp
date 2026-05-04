@@ -4,7 +4,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "usart.h"
-#include "Gimbal.h"
+#include "QGimbal.h"
 #include "queue.h"
 #include "sys_public.h"
 
@@ -40,7 +40,7 @@ struct __attribute__((packed)) RxPackage {
     Gimbal::gimbal_pair<int16_t> data; // 命令数据
 };
 
-extern Gimbal gimbal;     // 云台
+extern QGimbal qgimbal; // 云台
 
 xQueueHandle receive_package_queue;
 uint8_t UART6_RxBuffer[sizeof(RxPackage)];
@@ -53,7 +53,7 @@ void StartCommunicateTask(void *argument) {
     RxPackage rx_package{};
 
     // 1.等待gimbal使能
-    while (!gimbal.enabled)
+    while (!qgimbal.enabled)
         delay_ms(10);
 
     // 2.打开串口
@@ -67,60 +67,60 @@ void StartCommunicateTask(void *argument) {
             case CmdType::NOP: // NOP指令,只发送反馈报文
                 break;
             case CmdType::Enable: // 使能指令
-                gimbal.start();
+                qgimbal.start();
                 break;
             case CmdType::Disable: // 失能指令
-                gimbal.stop();
+                qgimbal.stop();
                 break;
             case CmdType::CurrentCtrl: // 电流控制
-                gimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl,
-                            {
-                                rx_package.data.yaw * 10.0f / INT16_MAX,
-                                rx_package.data.pitch * 10.0f / INT16_MAX
-                            });
+                qgimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl,
+                             {
+                                 rx_package.data.yaw * 10.0f / INT16_MAX,
+                                 rx_package.data.pitch * 10.0f / INT16_MAX
+                             });
                 break;
             case CmdType::SpeedCtrl: // 速度控制
-                gimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl,
-                            {
-                                rx_package.data.yaw * 1000.0f / INT16_MAX,
-                                rx_package.data.pitch * 1000.0f / INT16_MAX
-                            });
+                qgimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl,
+                             {
+                                 rx_package.data.yaw * 1000.0f / INT16_MAX,
+                                 rx_package.data.pitch * 1000.0f / INT16_MAX
+                             });
                 break;
             case CmdType::AngleCtrl: // 角度控制
-                gimbal.Ctrl(Gimbal::CtrlType::AngleCtrl,
-                            {
-                                rx_package.data.yaw * 2 * std::numbers::pi_v<float> / UINT16_MAX,
-                                rx_package.data.pitch * 2 * std::numbers::pi_v<float> / UINT16_MAX
-                            });
+                qgimbal.Ctrl(Gimbal::CtrlType::AngleCtrl,
+                             {
+                                 rx_package.data.yaw * 2 * std::numbers::pi_v<float> / UINT16_MAX,
+                                 rx_package.data.pitch * 2 * std::numbers::pi_v<float> / UINT16_MAX
+                             });
                 break;
             case CmdType::LowSpeedCtrl: // 低速控制
-                gimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl,
-                            {
-                                rx_package.data.yaw * 1000.0f / INT16_MAX,
-                                rx_package.data.pitch * 1000.0f / INT16_MAX
-                            });
+                qgimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl,
+                             {
+                                 rx_package.data.yaw * 1000.0f / INT16_MAX,
+                                 rx_package.data.pitch * 1000.0f / INT16_MAX
+                             });
                 break;
             case CmdType::StepAngleCtrl: // 角度递增
-                gimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl,
-                            {
-                                rx_package.data.yaw * 2 * std::numbers::pi_v<float> / INT16_MAX,
-                                rx_package.data.pitch * 2 * std::numbers::pi_v<float> / INT16_MAX
-                            });
+                qgimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl,
+                             {
+                                 rx_package.data.yaw * 2 * std::numbers::pi_v<float> / INT16_MAX,
+                                 rx_package.data.pitch * 2 * std::numbers::pi_v<float> / INT16_MAX
+                             });
                 break;
             case CmdType::EnableStability: // 使能自稳
-                gimbal.enable_stability();
+                qgimbal.enable_stability();
                 break;
             case CmdType::DisableStability: // 失能自稳
-                gimbal.disable_stability();
+                qgimbal.disable_stability();
                 break;
             case CmdType::EnableLaser: // 使能激光
-                HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin, GPIO_PIN_SET);
+                qgimbal.enable_laser();
                 break;
             case CmdType::DisableLaser: // 失能激光
-                HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin, GPIO_PIN_RESET);
+                qgimbal.disable_laser();
                 break;
             case CmdType::ResetIMU: // 复位IMU(角度调零)
-                gimbal.reset_imu();
+                qgimbal.reset_imu();
                 break;
             default:
                 break;
@@ -128,13 +128,12 @@ void StartCommunicateTask(void *argument) {
         // 是合法命令则发送反馈报文
         if (rx_package.cmd_type <= CmdType::StepAngleCtrl ||
             rx_package.cmd_type >= CmdType::ResetIMU) {
-            tx_package.status = gimbal.enabled | gimbal.stability_enabled << 1 |
-                                HAL_GPIO_ReadPin(Laser_En_GPIO_Port, Laser_En_Pin) << 2;
-            tx_package.imu_speed = gimbal.imu_speed;
-            tx_package.imu_angle = gimbal.imu_angle;
-            tx_package.motor_current = gimbal.motor_current;
-            tx_package.motor_speed = gimbal.motor_speed;
-            tx_package.motor_angle = gimbal.motor_angle;
+            tx_package.status = qgimbal.enabled | qgimbal.stability_enabled << 1 | qgimbal.laser_enabled << 2;
+            tx_package.imu_speed = qgimbal.imu_speed;
+            tx_package.imu_angle = qgimbal.imu_angle;
+            tx_package.motor_current = qgimbal.motor_current;
+            tx_package.motor_speed = qgimbal.motor_speed;
+            tx_package.motor_angle = qgimbal.motor_angle;
             tx_package.crc8 = CRC8(reinterpret_cast<const uint8_t *>(&tx_package), sizeof(tx_package) - 1,
                                    0x07, 0x00, 0x00, false, false);
             HAL_UART_Transmit_DMA(&huart6, reinterpret_cast<const uint8_t *>(&tx_package),

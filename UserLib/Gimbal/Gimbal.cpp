@@ -4,6 +4,11 @@
 
 extern MahonyAHRS AHRS;
 
+float Gimbal::wrap(float value, const float min, const float max) {
+    value = std::fmod(value - min, max - min);
+    return value < 0 ? value + max : value + min;
+}
+
 void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
     static gimbal_pair<float> previous_imu_angle = imu_angle;
     this->motor_angle = {motor.yaw.angle, motor.pitch.angle};
@@ -17,8 +22,13 @@ void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
     previous_imu_angle = imu_angle;
 }
 
+void Gimbal::init() {
+    initialized = true;
+}
+
 void Gimbal::enable() {
-    if (enabled) return; // 如果已经使能,则不重复使能
+    if (!initialized) return; // 如果没有初始化,则不能使能
+    if (enabled) return;      // 如果已经使能,则不重复使能
     if (!motor.yaw.enabled) motor.yaw.enable();
     if (!motor.pitch.enabled) motor.pitch.enable();
     delay_ms(1); // 等待电机响应
