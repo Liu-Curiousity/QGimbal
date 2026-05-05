@@ -42,6 +42,8 @@ public:
     void init();
     void start();
     void stop();
+    void enable_stability();
+    void disable_stability();
     void enable_laser();
     void disable_laser();
     // void calibrate();

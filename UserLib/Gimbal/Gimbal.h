@@ -92,9 +92,9 @@ public:
     void disable();
     void start();
     void stop();
-    void reset_imu();
     void enable_stability();
     void disable_stability();
+    void reset_imu();
 
     /**
      * @brief Gimbal控制设置函数

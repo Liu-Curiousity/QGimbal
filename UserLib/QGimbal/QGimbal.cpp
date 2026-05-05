@@ -32,14 +32,30 @@ void QGimbal::init() {
 
 void QGimbal::start() {
     Gimbal::start();
-    // TODO: 添加灯效
-    // if (started) HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+    if (started) {
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+    }
 }
 
 void QGimbal::stop() {
     Gimbal::stop();
-    // TODO: 添加灯效
-    // HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+}
+
+void QGimbal::enable_stability() {
+    Gimbal::enable_stability();
+    if (stability_enabled) {
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+    }
+}
+
+void QGimbal::disable_stability() {
+    Gimbal::disable_stability();
+    if (!stability_enabled) {
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+    }
 }
 
 void QGimbal::enable_laser() {
