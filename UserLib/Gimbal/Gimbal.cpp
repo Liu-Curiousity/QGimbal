@@ -117,8 +117,8 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     }
 
     auto pitch_clamp = [*this](const float value) {
-        if ((value > 0 && wrap((motor_angle - center).pitch) > pitch_max) ||
-            (value < 0 && wrap((motor_angle - center).pitch) < -pitch_max))
+        if ((value > 0 && wrap((motor_angle - zero_pos).pitch) > pitch_max) ||
+            (value < 0 && wrap((motor_angle - zero_pos).pitch) < -pitch_max))
             return 0.0f;
         return value;
     };
@@ -158,7 +158,7 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
                 motor.pitch.setCurrent(target_current.pitch);
                 break;
             case CtrlType::SpeedCtrl:
-                pid_speed.yaw.target = pitch_clamp(target_speed.yaw);
+                pid_speed.yaw.target = target_speed.yaw;
                 pid_speed.pitch.target = pitch_clamp(target_speed.pitch);
                 target_current = {pid_speed.yaw.calc(speed_.yaw), pid_speed.pitch.calc(speed_.pitch)};
                 motor.yaw.setCurrent(target_current.yaw);

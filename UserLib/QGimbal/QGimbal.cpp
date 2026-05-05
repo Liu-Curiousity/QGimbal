@@ -61,6 +61,16 @@ void QGimbal::disable_laser() {
 //         freeze_storage_calibration(STORAGE_BASE_CALIBRATE_OK); // 保存基础校准数据
 // }
 
+void QGimbal::Ctrl(const CtrlType ctrl_type, gimbal_pair<float> value) {
+    if (ctrl_type == CtrlType::AngleCtrl) {
+        value = {
+            wrap((value + zero_pos).yaw, 0, 2 * numbers::pi_v<float>),
+            wrap((value + zero_pos).pitch, 0, 2 * numbers::pi_v<float>)
+        };
+    }
+    Gimbal::Ctrl(ctrl_type, value);
+}
+
 bool QGimbal::setPID(const gimbal_pair<float> pid_speed_kp, const gimbal_pair<float> pid_speed_ki,
                      const gimbal_pair<float> pid_speed_kd, const gimbal_pair<float> pid_angle_kp,
                      const gimbal_pair<float> pid_angle_ki, const gimbal_pair<float> pid_angle_kd) {
@@ -95,8 +105,11 @@ bool QGimbal::setLimit(const gimbal_pair<float> current_limit) {
     return true;
 }
 
-bool QGimbal::setZeroPosition(const float position) {
-    zero_pos = wrap(zero_pos + position, 0, 2 * numbers::pi_v<float>);
+bool QGimbal::setZeroPosition(const gimbal_pair<float> position) {
+    zero_pos = {
+        wrap((zero_pos + position).yaw, 0, 2 * numbers::pi_v<float>),
+        wrap((zero_pos + position).pitch, 0, 2 * numbers::pi_v<float>)
+    };
     freeze_storage_calibration(STORAGE_ZERO_POS_OK);
     return true;
 }

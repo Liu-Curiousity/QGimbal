@@ -166,7 +166,10 @@ void gimbal_config(int argc, char *argv[]) {
         value = argv[2];
     }
 
-    if (value) {
+    if (strcmp(key, "zero_pos") == 0) {
+        qgimbal.setZeroPosition(qgimbal.motor_angle);
+        PRINT("Setting config [zero_pos]");
+    } else if (value) {
         const float valf = atof_lite(value);
         if (strcmp(key, "pid.speed.kp.yaw") == 0)
             qgimbal.setPID({valf, NAN}, {NAN, NAN}, {NAN, NAN}, {NAN, NAN}, {NAN, NAN}, {NAN, NAN});

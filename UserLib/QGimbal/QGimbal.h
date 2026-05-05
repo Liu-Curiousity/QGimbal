@@ -24,16 +24,16 @@ public:
     /**
      * @brief Gimbal构造函数
      * @param motor yaw轴和pitch轴电机对象引用
-     * @param center yaw轴和pitch轴云台中心位置,单位:rad
      * @param pid_speed yaw轴和pitch轴速度PID
      * @param pid_angle yaw轴和pitch轴角度PID
      * @param ctrl_ts 控制周期,单位:s
      * @param storage 存储器
      */
-    QGimbal(const gimbal_pair<QD4310&> motor, const gimbal_pair<float> center,
-            const gimbal_pair<PID>& pid_speed, const gimbal_pair<PID>& pid_angle,
+    QGimbal(const gimbal_pair<QD4310&> motor,
+            const gimbal_pair<PID>& pid_speed,
+            const gimbal_pair<PID>& pid_angle,
             const float ctrl_ts, Storage& storage) :
-        Gimbal(motor, center, pid_speed, pid_angle, ctrl_ts), storage(storage) {}
+        Gimbal(motor, pid_speed, pid_angle, ctrl_ts), storage(storage) {}
 
     uint32_t uart_baud_rate{115200}; // UART波特率
     bool laser_enabled{false};
@@ -44,6 +44,13 @@ public:
     void enable_laser();
     void disable_laser();
     // void calibrate();
+
+    /**
+     * @brief QGimbal控制设置函数
+     * @param ctrl_type 控制类型
+     * @param value 控制值
+     */
+    void Ctrl(CtrlType ctrl_type, gimbal_pair<float> value);
 
     /**
      * @brief 设置PID参数
@@ -70,7 +77,7 @@ public:
      * @param position 位置零点,单位rad
      * @return 设置成功返回true,失败返回false
      */
-    bool setZeroPosition(float position);
+    bool setZeroPosition(gimbal_pair<float> position);
 
     /**
      * @brief 设置UART波特率
@@ -100,9 +107,7 @@ private:
 
     static constexpr uint8_t STORAGE_MAGIC = 0xAA; // 存储器魔术字,储存在0x000
 
-    Storage& storage;     //存储器
-    // TODO: 待改
-    float zero_pos{0.0f}; //位置零点
+    Storage& storage; //存储器
 
     void restore_calibration();
     void load_storage_calibration();

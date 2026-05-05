@@ -12,9 +12,6 @@
 #include "BMI088.h"
 #include "Storage_EmbeddedFlash.h"
 
-constexpr static float yaw_center = 0.0f;   // 云台偏航中心位置,单位: rad
-constexpr static float pitch_center = 0.0f; // 云台俯仰中心位置,单位: rad
-
 extern BMI088 bmi088;
 
 QD4310 YawMotor(&hcan1, 0x00);   // 云台偏航电机
@@ -22,7 +19,6 @@ QD4310 PitchMotor(&hcan1, 0x01); // 云台俯仰电机
 
 QGimbal qgimbal(
     {YawMotor, PitchMotor},
-    {yaw_center, pitch_center},
     {
         PID{
             PID::PID_type::position_type,
@@ -65,7 +61,7 @@ QGimbal qgimbal(
             -GIMBAL_MAX_CURRENT
         }
     },
-    0.001f,storage
+    0.001f, storage
 );
 
 void CAN_InterfaceInit();
