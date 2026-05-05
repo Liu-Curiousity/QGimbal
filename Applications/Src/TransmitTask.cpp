@@ -36,8 +36,8 @@ enum class CmdType : uint8_t {
 };
 
 struct __attribute__((packed)) RxPackage {
-    CmdType cmd_type;                  // 命令类型
-    Gimbal::gimbal_pair<int16_t> data; // 命令数据
+    CmdType cmd_type;                // 命令类型
+    Gimbal::gimbal_pair<float> data; // 命令数据
 };
 
 extern QGimbal qgimbal; // 云台
@@ -73,39 +73,19 @@ void StartCommunicateTask(void *argument) {
                 qgimbal.stop();
                 break;
             case CmdType::CurrentCtrl: // 电流控制
-                qgimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl,
-                             {
-                                 rx_package.data.yaw * 10.0f / INT16_MAX,
-                                 rx_package.data.pitch * 10.0f / INT16_MAX
-                             });
+                qgimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl, rx_package.data);
                 break;
             case CmdType::SpeedCtrl: // 速度控制
-                qgimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl,
-                             {
-                                 rx_package.data.yaw * 1000.0f / INT16_MAX,
-                                 rx_package.data.pitch * 1000.0f / INT16_MAX
-                             });
+                qgimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl, rx_package.data);
                 break;
             case CmdType::AngleCtrl: // 角度控制
-                qgimbal.Ctrl(Gimbal::CtrlType::AngleCtrl,
-                             {
-                                 rx_package.data.yaw * 2 * std::numbers::pi_v<float> / UINT16_MAX,
-                                 rx_package.data.pitch * 2 * std::numbers::pi_v<float> / UINT16_MAX
-                             });
+                qgimbal.Ctrl(Gimbal::CtrlType::AngleCtrl, rx_package.data);
                 break;
             case CmdType::LowSpeedCtrl: // 低速控制
-                qgimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl,
-                             {
-                                 rx_package.data.yaw * 1000.0f / INT16_MAX,
-                                 rx_package.data.pitch * 1000.0f / INT16_MAX
-                             });
+                qgimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl, rx_package.data);
                 break;
             case CmdType::StepAngleCtrl: // 角度递增
-                qgimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl,
-                             {
-                                 rx_package.data.yaw * 2 * std::numbers::pi_v<float> / INT16_MAX,
-                                 rx_package.data.pitch * 2 * std::numbers::pi_v<float> / INT16_MAX
-                             });
+                qgimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl, rx_package.data);
                 break;
             case CmdType::EnableStability: // 使能自稳
                 qgimbal.enable_stability();

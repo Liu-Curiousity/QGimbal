@@ -166,8 +166,13 @@ void gimbal_config(int argc, char *argv[]) {
     }
 
     if (strcmp(key, "zero_pos") == 0) {
-        qgimbal.setZeroPosition(qgimbal.motor_angle);
-        PRINT("Setting config [zero_pos]");
+        if (value && strcmp(value, "--imu") == 0) {
+            qgimbal.reset_imu();
+            PRINT("Setting config [zero_pos] for IMU");
+        } else {
+            qgimbal.setZeroPosition(qgimbal.motor_angle);
+            PRINT("Setting config [zero_pos]");
+        }
     } else if (value) {
         const float valf = atof_lite(value);
         if (strcmp(key, "pid.speed.kp.yaw") == 0)
