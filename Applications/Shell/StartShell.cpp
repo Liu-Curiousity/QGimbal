@@ -22,7 +22,7 @@
 #include "task.h"
 
 Shell shell;
-char shellBuffer[256];
+char shellBuffer[1024];
 
 void USB_Disconnected() {
     __HAL_RCC_USB_OTG_FS_FORCE_RESET();
@@ -48,7 +48,7 @@ void StartStartShell(void *argument) {
     MX_USB_DEVICE_Init();
     shell.read = shellRead;
     shell.write = shellWrite;
-    shellInit(&shell, shellBuffer, 1024);
-    xTaskCreate(shellTask, "LetterShellTask", 128, &shell, osPriorityNormal, nullptr);
+    shellInit(&shell, shellBuffer, sizeof(shellBuffer));
+    xTaskCreate(shellTask, "LetterShellTask", 256, &shell, osPriorityNormal, nullptr);
     vTaskDelete(nullptr);
 }

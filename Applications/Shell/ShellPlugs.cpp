@@ -76,8 +76,8 @@ void print_version() {
 }
 
 void gimbal_status() {
-    PRINT("Motor Status:");
-    PRINT("  Enabled            : %s", qgimbal.enabled ? "Yes" : "No");
+    PRINT("Gimbal Status:");
+    PRINT("  Enabled            : %s", qgimbal.started ? "Yes" : "No");
     PRINT("  Stability Enabled  : %s", qgimbal.stability_enabled ? "Yes" : "No");
     PRINT("  Laser Enabled      : %s", qgimbal.laser_enabled ? "Yes" : "No");
     PRINT("  CtrlMode           : %s",
