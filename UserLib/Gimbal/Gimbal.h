@@ -39,7 +39,7 @@ public:
             };
         }
 
-        gimbal_pair&& operator+(const gimbal_pair& gimbal_pair) const {
+        gimbal_pair operator+(const gimbal_pair& gimbal_pair) const {
             return {
                 yaw + gimbal_pair.yaw,
                 pitch + gimbal_pair.pitch

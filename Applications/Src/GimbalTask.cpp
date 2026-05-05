@@ -74,7 +74,10 @@ void StartGimbalTask(void *argument) {
     // 等待第一次接收到数据，表明IMU初始化完成，此时启动gimbal
     while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
     qgimbal.init();
-    qgimbal.enable();
+    while (!qgimbal.enabled) {
+        qgimbal.enable();
+        osDelay(5);
+    }
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
         qgimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});

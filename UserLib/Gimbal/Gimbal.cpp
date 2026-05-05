@@ -16,10 +16,10 @@ void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
     this->motor_current = {motor.yaw.current, motor.pitch.current};
     this->imu_angle = {imu_angle.yaw, imu_angle.pitch + motor_angle.pitch};
     this->imu_speed = {
-        wrap((imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
-        wrap((imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
+        wrap((this->imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
+        wrap((this->imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
     };
-    previous_imu_angle = imu_angle;
+    previous_imu_angle = this->imu_angle;
 }
 
 void Gimbal::init() {
@@ -72,6 +72,8 @@ void Gimbal::enable_stability() {
 void Gimbal::disable_stability() {
     if (!enabled) return;           // 如果没有使能,则不能关闭稳定模式
     if (!stability_enabled) return; // 如果已经关闭稳定模式,则不重复关闭
+    target_angle = motor_angle;
+    target_speed = motor_speed;
     stability_enabled = false;
 }
 
