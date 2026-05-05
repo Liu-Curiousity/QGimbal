@@ -61,6 +61,12 @@ void QGimbal::disable_laser() {
 //         freeze_storage_calibration(STORAGE_BASE_CALIBRATE_OK); // 保存基础校准数据
 // }
 
+void QGimbal::updateVoltage(const float voltage) {
+    if (voltage == 0) return;
+    this->voltage = voltage;
+}
+
+
 void QGimbal::Ctrl(const CtrlType ctrl_type, gimbal_pair<float> value) {
     if (ctrl_type == CtrlType::AngleCtrl) {
         value = {

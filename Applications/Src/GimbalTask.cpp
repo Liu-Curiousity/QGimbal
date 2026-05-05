@@ -11,6 +11,7 @@
 #include "Gimbal_config.h"
 #include "BMI088.h"
 #include "Storage_EmbeddedFlash.h"
+#include "adc.h"
 
 extern BMI088 bmi088;
 
@@ -68,6 +69,8 @@ void CAN_InterfaceInit();
 
 void StartGimbalTask(void *argument) {
     CAN_InterfaceInit();
+    HAL_ADC_Start(&hadc3);
+
     // 等待第一次接收到数据，表明IMU初始化完成，此时启动gimbal
     while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
     qgimbal.init();
@@ -75,6 +78,11 @@ void StartGimbalTask(void *argument) {
     while (true) {
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS) {}
         qgimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
+
+        if (__HAL_ADC_GET_FLAG(&hadc3, ADC_FLAG_EOC)) {
+            qgimbal.updateVoltage(HAL_ADC_GetValue(&hadc3) / 4095.0f * 3.3f / 22 * 222);
+            HAL_ADC_Start(&hadc3);
+        }
     }
 }
 

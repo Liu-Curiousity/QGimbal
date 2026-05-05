@@ -91,8 +91,7 @@ void gimbal_status() {
     PRINT("  Current            : yaw:%.2f, pitch:%.2f A", qgimbal.motor_current.yaw, qgimbal.motor_current.pitch);
     PRINT("  Speed              : yaw:%.2f, pitch:%.2f A", qgimbal.motor_speed.yaw, qgimbal.motor_speed.pitch);
     PRINT("  Angle              : yaw:%.2f, pitch:%.2f A", qgimbal.motor_angle.yaw, qgimbal.motor_angle.pitch);
-    // TODO: 显示电压
-    // PRINT("  Voltage            : %.2f V", qd4310.getVoltage());
+    PRINT("  Voltage            : %.2f V", qgimbal.voltage);
 }
 
 void gimbal_config_help() {

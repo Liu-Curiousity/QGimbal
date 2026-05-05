@@ -35,8 +35,9 @@ public:
             const float ctrl_ts, Storage& storage) :
         Gimbal(motor, pid_speed, pid_angle, ctrl_ts), storage(storage) {}
 
-    uint32_t uart_baud_rate{115200}; // UART波特率
     bool laser_enabled{false};
+    uint32_t uart_baud_rate{115200}; // UART波特率
+    float voltage{0.0f};             // 电压,单位V
 
     void init();
     void start();
@@ -44,6 +45,7 @@ public:
     void enable_laser();
     void disable_laser();
     // void calibrate();
+    void updateVoltage(float voltage);
 
     /**
      * @brief QGimbal控制设置函数
