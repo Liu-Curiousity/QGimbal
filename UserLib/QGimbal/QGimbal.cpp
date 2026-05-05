@@ -137,7 +137,7 @@ bool QGimbal::setZeroPosition(const gimbal_pair<float> position) {
 }
 
 bool QGimbal::setUartBaudRate(const uint32_t baud_rate) {
-    if (baud_rate < 50'000 || baud_rate > 10'000'000) return false; // 波特率必须在50'000-10'000'000之间
+    if (baud_rate < 50'000 || baud_rate > 5'000'000) return false; // 波特率必须在50'000-5'000'000之间
     uart_baud_rate = baud_rate;
     // TODO: 重写配置UART
     HAL_UART_DeInit(&huart6);

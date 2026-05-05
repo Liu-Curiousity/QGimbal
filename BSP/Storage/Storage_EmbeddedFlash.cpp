@@ -28,16 +28,15 @@ void Storage_EmbeddedFlash::write(const uint32_t addr, void *buff, uint32_t coun
     FLASH_EraseInitTypeDef EraseInitStruct;
     EraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS; // 标明Flash执行页面只做擦除操作
     EraseInitStruct.Banks = FLASH_BANK_1;
-    EraseInitStruct.Sector = FLASH_SECTOR_0; // 声明要擦除的地址
-    EraseInitStruct.NbSectors = 1; // 说明要擦除的扇区数
+    EraseInitStruct.Sector = FLASH_SECTOR_1; // 声明要擦除的地址
+    EraseInitStruct.NbSectors = 1;           // 说明要擦除的扇区数
     EraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
-    uint32_t PageError = 0; // 设置PageError,如果出现错误这个变量会被设置为出错的FLASH地址
+    uint32_t PageError = 0;                                              // 设置PageError,如果出现错误这个变量会被设置为出错的FLASH地址
     while (HAL_OK != HAL_FLASHEx_Erase(&EraseInitStruct, &PageError)) {} // 调用擦除函数擦除
 
-    for (uint32_t i = 0; i < storage_size / 8; i++) {
-        while (HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
-                                           FLASH_BASE +  i * 8,
-                                           *reinterpret_cast<uint64_t *>(page_buffer + i * 8))) {}
+    for (uint32_t i = 0; i < storage_size / 4; i++) {
+        while (HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, STORAGE_ADDRESS_BASE + i * 4,
+                                           *reinterpret_cast<uint64_t *>(page_buffer + i * 4))) {}
     }
 
     HAL_FLASH_Lock(); //锁住Flash

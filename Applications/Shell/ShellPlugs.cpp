@@ -86,11 +86,12 @@ void gimbal_status() {
           qgimbal.getCtrlType() == Gimbal::CtrlType::AngleCtrl ? "AngleCtrl" :
           qgimbal.getCtrlType() == Gimbal::CtrlType::StepAngleCtrl ? "StepAngleCtrl" :
           qgimbal.getCtrlType() == Gimbal::CtrlType::LowSpeedCtrl ? "LowSpeedCtrl" : "Unknown");
-    PRINT("  IMU Angle          : yaw:%.2f, pitch:%.2f A", qgimbal.imu_angle.yaw, qgimbal.imu_angle.pitch);
-    PRINT("  IMU Speed          : yaw:%.2f, pitch:%.2f A", qgimbal.imu_speed.yaw, qgimbal.imu_speed.pitch);
-    PRINT("  Current            : yaw:%.2f, pitch:%.2f A", qgimbal.motor_current.yaw, qgimbal.motor_current.pitch);
-    PRINT("  Speed              : yaw:%.2f, pitch:%.2f A", qgimbal.motor_speed.yaw, qgimbal.motor_speed.pitch);
-    PRINT("  Angle              : yaw:%.2f, pitch:%.2f A", qgimbal.motor_angle.yaw, qgimbal.motor_angle.pitch);
+    PRINT("  IMU Angle          : yaw:%.2f rad, pitch:%.2f rad", qgimbal.imu_angle.yaw, qgimbal.imu_angle.pitch);
+    PRINT("  IMU Speed          : yaw:%.2f rpm, pitch:%.2f rpm", qgimbal.imu_speed.yaw, qgimbal.imu_speed.pitch);
+    PRINT("  Angle              : yaw:%.2f rad, pitch:%.2f rad", qgimbal.motor_angle.yaw, qgimbal.motor_angle.pitch);
+    PRINT("  Speed              : yaw:%.2f rpm, pitch:%.2f rpm", qgimbal.motor_speed.yaw, qgimbal.motor_speed.pitch);
+    PRINT("  Current            : yaw:%.2f A  , pitch:%.2f A  ", qgimbal.motor_current.yaw,
+          qgimbal.motor_current.pitch);
     PRINT("  Voltage            : %.2f V", qgimbal.voltage);
 }
 
@@ -203,7 +204,13 @@ void gimbal_config(int argc, char *argv[]) {
             qgimbal.setLimit({valf,NAN});
         else if (strcmp(key, "limit.current.pitch") == 0)
             qgimbal.setLimit({NAN, valf});
-        else {
+        else if (strcmp(key, "uart.baud_rate") == 0) {
+            if (!qgimbal.setUartBaudRate(valf)) {
+                PRINT("Invalid UART baud rate: %d, must be between 10'000 and 5'000'000", static_cast<int>(valf));
+                return;
+            }
+            PRINT("UART baud rate will be set after storing and rebooting");
+        } else {
             PRINT("Unknown config target: %s", key);
             return;
         }
@@ -265,7 +272,7 @@ void gimbal_ctrl(int argc, char *argv[]) {
     }
 
     if (has_val) {
-        Gimbal::gimbal_pair<float> vals = {y_val, p_val};
+        const Gimbal::gimbal_pair vals = {y_val, p_val};
         if (strcmp(key, "current") == 0) {
             PRINT("Setting current Y:%.2f P:%.2f A", y_val, p_val);
             qgimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl, vals);
@@ -303,7 +310,7 @@ void gimbal_disable() {
     PRINT("QGimbal disabled");
 }
 
-void gimbal_stability_enable() {
+void gimbal_enable_stability() {
     qgimbal.enable_stability();
     if (qgimbal.stability_enabled) {
         PRINT("QGimbal stability enabled");
@@ -312,12 +319,12 @@ void gimbal_stability_enable() {
     }
 }
 
-void gimbal_stability_disable() {
+void gimbal_disable_stability() {
     qgimbal.disable_stability();
     PRINT("QGimbal stability control disabled");
 }
 
-void gimbal_laser_enable() {
+void gimbal_enable_laser() {
     qgimbal.enable_laser();
     if (qgimbal.laser_enabled) {
         PRINT("Laser enabled");
@@ -326,7 +333,7 @@ void gimbal_laser_enable() {
     }
 }
 
-void gimbal_laser_disable() {
+void gimbal_disable_laser() {
     qgimbal.disable_laser();
     PRINT("Laser disabled");
 }
@@ -407,19 +414,19 @@ SHELL_EXPORT_CMD(
 );
 SHELL_EXPORT_CMD(
     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-    stability_enable, gimbal_stability_enable, Enable gimbal stability control
+    enable_stability, gimbal_enable_stability, Enable gimbal stability control
 );
 SHELL_EXPORT_CMD(
     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-    stability_disable, gimbal_stability_disable, Disable gimbal stability control
+    disable_stability, gimbal_disable_stability, Disable gimbal stability control
 );
 SHELL_EXPORT_CMD(
     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-    laser_enable, gimbal_laser_enable, Enable laser
+    enable_laser, gimbal_enable_laser, Enable laser
 );
 SHELL_EXPORT_CMD(
     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
-    laser_disable, gimbal_laser_disable, Disable laser
+    disable_laser, gimbal_disable_laser, Disable laser
 );
 SHELL_EXPORT_CMD(
     SHELL_CMD_DISABLE_RETURN|SHELL_CMD_PERMISSION(0)|SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN),
