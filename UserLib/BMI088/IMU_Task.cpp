@@ -106,6 +106,13 @@ void InsTask(void *argument) {
                                          &bmi088_real_data.temp);
         }
 
+        // 倒拿检测与修正
+        if (bmi088_real_data.accel[2] < 0) {  // 假设 z 轴向下为正
+            bmi088_real_data.accel[0] = -bmi088_real_data.accel[0];  // 反转 x
+            bmi088_real_data.accel[1] = -bmi088_real_data.accel[1];  // 反转 y
+            bmi088_real_data.accel[2] = -bmi088_real_data.accel[2];  // 反转 z
+        }
+
         AHRS.update(bmi088_real_data.gyro[0], bmi088_real_data.gyro[1], bmi088_real_data.gyro[2],
                     bmi088_real_data.accel[0], bmi088_real_data.accel[1], bmi088_real_data.accel[2]);
         get_angle(AHRS.q.data(), INS_angle, INS_angle + 1, INS_angle + 2);
