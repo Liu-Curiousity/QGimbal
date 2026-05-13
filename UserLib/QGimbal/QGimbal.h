@@ -50,13 +50,6 @@ public:
     void updateVoltage(float voltage);
 
     /**
-     * @brief QGimbal控制设置函数
-     * @param ctrl_type 控制类型
-     * @param value 控制值
-     */
-    void Ctrl(CtrlType ctrl_type, gimbal_pair<float> value);
-
-    /**
      * @brief 设置PID参数
      * @param pid_speed_kp 速度环比例系数,若为NAN则不更新
      * @param pid_speed_ki 速度环积分系数,若为NAN则不更新
@@ -111,11 +104,13 @@ private:
 
     static constexpr uint8_t STORAGE_MAGIC = 0xAA; // 存储器魔术字,储存在0x000
 
-    Storage& storage; //存储器
+    Storage& storage;                  //存储器
+    gimbal_pair<float> zero_pos{0, 0}; // 云台零点,单位:rad
 
     void restore_calibration();
     void load_storage_calibration();
     void freeze_storage_calibration(StorageStatus storage_type);
+    void update_attitude(gimbal_pair<float> imu_angle) override;
 };
 
 #endif //FOC_QGIMBAL_QGIMBAL_H

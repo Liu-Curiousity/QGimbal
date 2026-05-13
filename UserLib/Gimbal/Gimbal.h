@@ -112,11 +112,12 @@ public:
 protected:
     gimbal_pair<PID> pid_speed;
     gimbal_pair<PID> pid_angle;
-    gimbal_pair<float> zero_pos{0, 0}; // 云台零点,单位:rad
 
     static float wrap(float value,
                       float min = -std::numbers::pi_v<float>,
                       float max = std::numbers::pi_v<float>);
+
+    virtual void update_attitude(gimbal_pair<float> imu_angle);
 
 private:
     CtrlType ctrl_type{CtrlType::CurrentCtrl}; // 当前控制类型
@@ -129,8 +130,6 @@ private:
     gimbal_pair<QD4310&> motor;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
-
-    void update_attitude(gimbal_pair<float> imu_angle);
 };
 
 #endif //QGIMBAL_GIMBAL_H

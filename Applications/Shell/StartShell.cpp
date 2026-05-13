@@ -20,13 +20,15 @@
 #include "retarget.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "qgimbal.h"
 
 Shell shell;
 char shellBuffer[1024];
+extern QGimbal qgimbal; // 云台
 
 void USB_Disconnected() {
     __HAL_RCC_USB_OTG_FS_FORCE_RESET();
-    HAL_Delay(200);
+    osDelay(200);
     __HAL_RCC_USB_OTG_FS_RELEASE_RESET();
 
     GPIO_InitTypeDef GPIO_Initure;
@@ -40,10 +42,15 @@ void USB_Disconnected() {
 
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
-    HAL_Delay(300);
+    osDelay(300);
 }
 
 void StartStartShell(void *argument) {
+    // 1.等待gimbal使能
+    while (!qgimbal.enabled)
+        osDelay(10);
+
+    // 2.启动shell
     USB_Disconnected(); //USB重枚举
     MX_USB_DEVICE_Init();
     shell.read = shellRead;

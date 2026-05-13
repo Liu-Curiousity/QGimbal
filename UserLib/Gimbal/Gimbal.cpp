@@ -9,7 +9,7 @@ float Gimbal::wrap(float value, const float min, const float max) {
     return value < 0 ? value + max : value + min;
 }
 
-void Gimbal::update_attitude(gimbal_pair<float> imu_angle) {
+void Gimbal::update_attitude(const gimbal_pair<float> imu_angle) {
     static gimbal_pair<float> previous_imu_angle = imu_angle;
     this->motor_angle = {motor.yaw.angle, motor.pitch.angle};
     this->motor_speed = {motor.yaw.speed, motor.pitch.speed};
@@ -119,8 +119,8 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
     }
 
     auto pitch_clamp = [*this](const float value) {
-        if ((value > 0 && wrap((motor_angle - zero_pos).pitch) > pitch_max) ||
-            (value < 0 && wrap((motor_angle - zero_pos).pitch) < -pitch_max))
+        if ((value > 0 && wrap(motor_angle.pitch) > pitch_max) ||
+            (value < 0 && wrap(motor_angle.pitch) < -pitch_max))
             return 0.0f;
         return value;
     };

@@ -82,15 +82,10 @@ void QGimbal::updateVoltage(const float voltage) {
     this->voltage = voltage;
 }
 
-
-void QGimbal::Ctrl(const CtrlType ctrl_type, gimbal_pair<float> value) {
-    if (ctrl_type == CtrlType::AngleCtrl) {
-        value = {
-            wrap((value + zero_pos).yaw, 0, 2 * numbers::pi_v<float>),
-            wrap((value + zero_pos).pitch, 0, 2 * numbers::pi_v<float>)
-        };
-    }
-    Gimbal::Ctrl(ctrl_type, value);
+void QGimbal::update_attitude(const gimbal_pair<float> imu_angle) {
+    Gimbal::update_attitude(imu_angle);
+    // 根据电压调整PID参数,保持控制性能稳定
+    motor_angle = motor_angle - zero_pos;
 }
 
 bool QGimbal::setPID(const gimbal_pair<float> pid_speed_kp, const gimbal_pair<float> pid_speed_ki,
