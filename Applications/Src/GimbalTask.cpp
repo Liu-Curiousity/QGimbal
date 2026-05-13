@@ -83,7 +83,7 @@ void StartGimbalTask(void *argument) {
         qgimbal.Ctrl_ISR({bmi088.yaw, bmi088.pitch});
 
         if (__HAL_ADC_GET_FLAG(&hadc3, ADC_FLAG_EOC)) {
-            qgimbal.updateVoltage(HAL_ADC_GetValue(&hadc3) / 4095.0f * 3.3f / 22 * 222);
+            qgimbal.updateVoltage(HAL_ADC_GetValue(&hadc3) / 4095.0f * 3.3f / 22 * 222 * 1.03f); // 1.03f为校准补偿系数
             HAL_ADC_Start(&hadc3);
         }
     }
