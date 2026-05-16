@@ -168,6 +168,10 @@ void gimbal_config(int argc, char *argv[]) {
 
     if (strcmp(key, "zero_pos") == 0) {
         if (value && strcmp(value, "--imu") == 0) {
+            if (qgimbal.stability_enabled) {
+                PRINT("Cannot reset IMU zero position while stability is enabled. Please disable stability first.");
+                return;
+            }
             qgimbal.reset_imu();
             PRINT("Setting config [zero_pos] for IMU");
         } else {

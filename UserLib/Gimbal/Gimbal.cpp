@@ -55,6 +55,7 @@ void Gimbal::start() {
 
 void Gimbal::stop() {
     started = false;
+    Ctrl(CtrlType::CurrentCtrl, {0,0});
 }
 
 void Gimbal::reset_imu() {
@@ -64,17 +65,41 @@ void Gimbal::reset_imu() {
 void Gimbal::enable_stability() {
     if (!enabled) return;          // 如果没有使能,则不能开启稳定模式
     if (stability_enabled) return; // 如果已经开启稳定模式,则不重复开启
-    target_angle = imu_angle;
-    target_speed = imu_speed;
     stability_enabled = true;
+
+    const gimbal_pair<float> target_angle_ = {
+        wrap(target_angle.yaw + imu_angle.yaw - motor_angle.yaw, 0, 2 * std::numbers::pi_v<float>),
+        wrap(target_angle.pitch + imu_angle.pitch - motor_angle.pitch, 0, 2 * std::numbers::pi_v<float>)
+    };
+    if (ctrl_type == CtrlType::LowSpeedCtrl) {
+        Ctrl(CtrlType::AngleCtrl, target_angle_);
+        Ctrl(CtrlType::LowSpeedCtrl, target_low_speed);
+    } else if (ctrl_type == CtrlType::StepAngleCtrl) {
+        Ctrl(CtrlType::AngleCtrl, target_angle_);
+        Ctrl(CtrlType::StepAngleCtrl, {0, 0});
+    } else if (ctrl_type == CtrlType::AngleCtrl) {
+        Ctrl(CtrlType::AngleCtrl, target_angle_);
+    }
 }
 
 void Gimbal::disable_stability() {
     if (!enabled) return;           // 如果没有使能,则不能关闭稳定模式
     if (!stability_enabled) return; // 如果已经关闭稳定模式,则不重复关闭
-    target_angle = motor_angle;
-    target_speed = motor_speed;
     stability_enabled = false;
+
+    const gimbal_pair<float> target_angle_ = {
+        wrap(target_angle.yaw - imu_angle.yaw + motor_angle.yaw, 0, 2 * std::numbers::pi_v<float>),
+        wrap(target_angle.pitch - imu_angle.pitch + motor_angle.pitch, 0, 2 * std::numbers::pi_v<float>)
+    };
+    if (ctrl_type == CtrlType::LowSpeedCtrl) {
+        Ctrl(CtrlType::AngleCtrl, target_angle_);
+        Ctrl(CtrlType::LowSpeedCtrl, target_low_speed);
+    } else if (ctrl_type == CtrlType::StepAngleCtrl) {
+        Ctrl(CtrlType::AngleCtrl, target_angle_);
+        Ctrl(CtrlType::StepAngleCtrl, {0, 0});
+    } else if (ctrl_type == CtrlType::AngleCtrl) {
+        Ctrl(CtrlType::AngleCtrl, target_angle_);
+    }
 }
 
 void Gimbal::Ctrl(const CtrlType ctrl_type, const gimbal_pair<float> value) {
