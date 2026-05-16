@@ -147,10 +147,10 @@ void QGimbal::restore_calibration() {
     setPID(
         {GIMBAL_SPEED_KP_YAW, GIMBAL_SPEED_KP_PITCH},
         {GIMBAL_SPEED_KI_YAW, GIMBAL_SPEED_KI_PITCH},
-        {GIMBAL_SPEED_KD_YAW, GIMBAL_SPEED_KI_PITCH},
-        {GIMBAL_ANGLE_KP_YAW, GIMBAL_SPEED_KI_PITCH},
-        {GIMBAL_ANGLE_KI_YAW, GIMBAL_SPEED_KI_PITCH},
-        {GIMBAL_ANGLE_KD_YAW, GIMBAL_SPEED_KI_PITCH}
+        {GIMBAL_SPEED_KD_YAW, GIMBAL_SPEED_KD_PITCH},
+        {GIMBAL_ANGLE_KP_YAW, GIMBAL_ANGLE_KP_PITCH},
+        {GIMBAL_ANGLE_KI_YAW, GIMBAL_ANGLE_KI_PITCH},
+        {GIMBAL_ANGLE_KD_YAW, GIMBAL_ANGLE_KD_PITCH}
     );
     setLimit({GIMBAL_MAX_CURRENT, GIMBAL_MAX_CURRENT});
     setUartBaudRate(115200);
@@ -179,12 +179,12 @@ void QGimbal::load_storage_calibration() {
         storage.read(0x230, &pid_angle.yaw.kp, sizeof(pid_angle.yaw.kp));
         storage.read(0x240, &pid_angle.yaw.ki, sizeof(pid_angle.yaw.ki));
         storage.read(0x250, &pid_angle.yaw.kd, sizeof(pid_angle.yaw.kd));
-        storage.read(0x260, &pid_speed.yaw.kp, sizeof(pid_speed.yaw.kp));
-        storage.read(0x270, &pid_speed.yaw.ki, sizeof(pid_speed.yaw.ki));
-        storage.read(0x280, &pid_speed.yaw.kd, sizeof(pid_speed.yaw.kd));
-        storage.read(0x290, &pid_angle.yaw.kp, sizeof(pid_angle.yaw.kp));
-        storage.read(0x2A0, &pid_angle.yaw.ki, sizeof(pid_angle.yaw.ki));
-        storage.read(0x2B0, &pid_angle.yaw.kd, sizeof(pid_angle.yaw.kd));
+        storage.read(0x260, &pid_speed.pitch.kp, sizeof(pid_speed.pitch.kp));
+        storage.read(0x270, &pid_speed.pitch.ki, sizeof(pid_speed.pitch.ki));
+        storage.read(0x280, &pid_speed.pitch.kd, sizeof(pid_speed.pitch.kd));
+        storage.read(0x290, &pid_angle.pitch.kp, sizeof(pid_angle.pitch.kp));
+        storage.read(0x2A0, &pid_angle.pitch.ki, sizeof(pid_angle.pitch.ki));
+        storage.read(0x2B0, &pid_angle.pitch.kd, sizeof(pid_angle.pitch.kd));
     }
     if ((storage_status & STORAGE_LIMIT_OK) == STORAGE_LIMIT_OK) {
         storage.read(0x300, &pid_angle.yaw.output_limit_p, sizeof(pid_angle.yaw.output_limit_p));
@@ -210,15 +210,18 @@ void QGimbal::load_storage_calibration() {
  * @param storage_type 储存数据类型
  */
 void QGimbal::freeze_storage_calibration(const StorageStatus storage_type) {
+    uint8_t buffer[0x100];
     uint8_t storage_magic;
     StorageStatus storage_status;
     storage.read(0x000, &storage_magic, sizeof(storage_magic));
     // 如果魔术字不对,则清零所有储存标志
     if (storage_magic != STORAGE_MAGIC) {
         storage_magic = STORAGE_MAGIC;
-        storage.write(0x000, &storage_magic, sizeof(storage_magic));
         storage_status = STORAGE_NONE;
-        storage.write(0x010, &storage_status, sizeof(storage_status));
+        std::fill_n(buffer, sizeof(buffer), 0);
+        *reinterpret_cast<decltype(storage_magic) *>(&buffer[0x000]) = storage_magic;
+        *reinterpret_cast<decltype(storage_status) *>(&buffer[0x010]) = storage_status;
+        storage.write(0x000, buffer, 0x020);
     }
 
     storage.read(0x010, &storage_status, 1);
@@ -227,25 +230,29 @@ void QGimbal::freeze_storage_calibration(const StorageStatus storage_type) {
     }
     if ((storage_type & STORAGE_PID_PARAMETER_OK) == STORAGE_PID_PARAMETER_OK) {
         // 储存PID参数
-        storage.write(0x200, &pid_speed.yaw.kp, sizeof(pid_speed.yaw.kp));
-        storage.write(0x210, &pid_speed.yaw.ki, sizeof(pid_speed.yaw.ki));
-        storage.write(0x220, &pid_speed.yaw.kd, sizeof(pid_speed.yaw.kd));
-        storage.write(0x230, &pid_angle.yaw.kp, sizeof(pid_angle.yaw.kp));
-        storage.write(0x240, &pid_angle.yaw.ki, sizeof(pid_angle.yaw.ki));
-        storage.write(0x250, &pid_angle.yaw.kd, sizeof(pid_angle.yaw.kd));
-        storage.write(0x260, &pid_speed.yaw.kp, sizeof(pid_speed.yaw.kp));
-        storage.write(0x270, &pid_speed.yaw.ki, sizeof(pid_speed.yaw.ki));
-        storage.write(0x280, &pid_speed.yaw.kd, sizeof(pid_speed.yaw.kd));
-        storage.write(0x290, &pid_angle.yaw.kp, sizeof(pid_angle.yaw.kp));
-        storage.write(0x2A0, &pid_angle.yaw.ki, sizeof(pid_angle.yaw.ki));
-        storage.write(0x2B0, &pid_angle.yaw.kd, sizeof(pid_angle.yaw.kd));
+        std::fill_n(buffer, sizeof(buffer), 0);
+        *reinterpret_cast<decltype(pid_speed.yaw.kp) *>(&buffer[0x000]) = pid_speed.yaw.kp;
+        *reinterpret_cast<decltype(pid_speed.yaw.ki) *>(&buffer[0x010]) = pid_speed.yaw.ki;
+        *reinterpret_cast<decltype(pid_speed.yaw.kd) *>(&buffer[0x020]) = pid_speed.yaw.kd;
+        *reinterpret_cast<decltype(pid_angle.yaw.kp) *>(&buffer[0x030]) = pid_angle.yaw.kp;
+        *reinterpret_cast<decltype(pid_angle.yaw.ki) *>(&buffer[0x040]) = pid_angle.yaw.ki;
+        *reinterpret_cast<decltype(pid_angle.yaw.kd) *>(&buffer[0x050]) = pid_angle.yaw.kd;
+        *reinterpret_cast<decltype(pid_speed.pitch.kp) *>(&buffer[0x060]) = pid_speed.pitch.kp;
+        *reinterpret_cast<decltype(pid_speed.pitch.ki) *>(&buffer[0x070]) = pid_speed.pitch.ki;
+        *reinterpret_cast<decltype(pid_speed.pitch.kd) *>(&buffer[0x080]) = pid_speed.pitch.kd;
+        *reinterpret_cast<decltype(pid_angle.pitch.kp) *>(&buffer[0x090]) = pid_angle.pitch.kp;
+        *reinterpret_cast<decltype(pid_angle.pitch.ki) *>(&buffer[0x0A0]) = pid_angle.pitch.ki;
+        *reinterpret_cast<decltype(pid_angle.pitch.kd) *>(&buffer[0x0B0]) = pid_angle.pitch.kd;
+        storage.write(0x200, buffer, 0x0C0);
     }
     if ((storage_type & STORAGE_LIMIT_OK) == STORAGE_LIMIT_OK) {
         // 储存限幅参数
-        storage.write(0x300, &pid_angle.yaw.output_limit_p, sizeof(pid_angle.yaw.output_limit_p));
-        storage.write(0x310, &pid_speed.yaw.output_limit_p, sizeof(pid_speed.yaw.output_limit_p));
-        storage.write(0x320, &pid_angle.pitch.output_limit_p, sizeof(pid_angle.pitch.output_limit_p));
-        storage.write(0x330, &pid_speed.pitch.output_limit_p, sizeof(pid_speed.pitch.output_limit_p));
+        std::fill_n(buffer, sizeof(buffer), 0);
+        *reinterpret_cast<decltype(pid_angle.yaw.output_limit_p ) *>(&buffer[0x000]) = pid_angle.yaw.output_limit_p;
+        *reinterpret_cast<decltype(pid_speed.yaw.output_limit_p ) *>(&buffer[0x010]) = pid_speed.yaw.output_limit_p;
+        *reinterpret_cast<decltype(pid_angle.pitch.output_limit_p) *>(&buffer[0x020]) = pid_angle.pitch.output_limit_p;
+        *reinterpret_cast<decltype(pid_speed.pitch.output_limit_p) *>(&buffer[0x030]) = pid_speed.pitch.output_limit_p;
+        storage.write(0x300, buffer, 0x040);
     }
     if ((storage_type & STORAGE_PLUG_OK) == STORAGE_PLUG_OK) {
         // 储存波特率
