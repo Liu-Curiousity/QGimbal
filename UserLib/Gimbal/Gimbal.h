@@ -110,8 +110,11 @@ public:
     void Ctrl_ISR(gimbal_pair<float> imu_angle_);
 
 protected:
+    float Ts; // 控制周期,单位:s
     gimbal_pair<PID> pid_speed;
     gimbal_pair<PID> pid_angle;
+    gimbal_pair<QD4310&> motor;
+    float imu_pitch_zero_pos{0}; // IMU俯仰轴零点位置,单位:rad
 
     static float wrap(float value,
                       float min = -std::numbers::pi_v<float>,
@@ -122,12 +125,10 @@ protected:
 private:
     CtrlType ctrl_type{CtrlType::CurrentCtrl}; // 当前控制类型
 
-    float Ts;                                  // 控制周期,单位:s
     gimbal_pair<float> target_low_speed{0, 0}; // 单位:rpm
     gimbal_pair<float> target_angle{0, 0};     // 单位:rad
     gimbal_pair<float> target_speed{0, 0};     // 单位:rpm
     gimbal_pair<float> target_current{0, 0};   // 单位:A
-    gimbal_pair<QD4310&> motor;
 
     static constexpr float pitch_max = 0.5f; // pitch轴最大仰角限制,单位:rad
 };

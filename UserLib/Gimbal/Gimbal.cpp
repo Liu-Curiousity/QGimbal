@@ -14,7 +14,10 @@ void Gimbal::update_attitude(const gimbal_pair<float> imu_angle) {
     this->motor_angle = {motor.yaw.angle, motor.pitch.angle};
     this->motor_speed = {motor.yaw.speed, motor.pitch.speed};
     this->motor_current = {motor.yaw.current, motor.pitch.current};
-    this->imu_angle = {imu_angle.yaw, imu_angle.pitch + motor_angle.pitch};
+    this->imu_angle = {
+        wrap(imu_angle.yaw, 0, 2 * std::numbers::pi),
+        wrap(imu_angle.pitch + motor_angle.pitch - imu_pitch_zero_pos, 0, 2 * std::numbers::pi)
+    };
     this->imu_speed = {
         wrap((this->imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
         wrap((this->imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
@@ -55,10 +58,11 @@ void Gimbal::start() {
 
 void Gimbal::stop() {
     started = false;
-    Ctrl(CtrlType::CurrentCtrl, {0,0});
+    Ctrl(CtrlType::CurrentCtrl, {0, 0});
 }
 
 void Gimbal::reset_imu() {
+    imu_pitch_zero_pos = motor_angle.pitch;
     AHRS.reset();
 }
 
