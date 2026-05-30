@@ -43,7 +43,7 @@ struct __attribute__((packed)) RxPackage {
 extern QGimbal qgimbal; // 云台
 
 xQueueHandle receive_package_queue;
-uint8_t UART6_RxBuffer[sizeof(RxPackage)];
+uint8_t UART6_RxBuffer[sizeof(RxPackage) + 1];
 
 uint8_t CRC8(const uint8_t *data, uint32_t len, uint8_t polynomial, uint8_t init,
              uint8_t xor_out, bool input_invert, bool output_invert);
@@ -127,7 +127,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (huart->Instance == huart6.Instance) {
         // 如果数据长度匹配且CRC8校验通过,进行处理
         if (Size == sizeof(RxPackage) + 1 &&
-            CRC8(UART6_RxBuffer, 4, 0x07, 0x00, 0x00, false, false) == UART6_RxBuffer[4]) {
+            CRC8(UART6_RxBuffer, sizeof(RxPackage), 0x07, 0x00, 0x00, false, false)
+            == UART6_RxBuffer[sizeof(RxPackage)]) {
             // cmd:1 byte, data:4 bytes, crc8:1 byte
             xQueueSendToBackFromISR(receive_package_queue, UART6_RxBuffer, &xHigherPriorityTaskWoken);
             portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
