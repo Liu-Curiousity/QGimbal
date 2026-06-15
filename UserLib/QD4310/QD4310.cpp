@@ -1,15 +1,16 @@
 /**
- * @file        QD4310.cpp
+ * @file        QD4310.h
  * @brief       基于HAL库的QD4310电机CAN总线控制库
  * @details
  * @author      Liu-Curiousity (2675794963@qq.com)
- * @date        2026-4-28
- * @version     V1.1.1
+ * @date        2026-6-15
+ * @version     V1.2.0
  * @note
  * @warning
  * @par         历史版本:
  *		        V1.1.0创建于2026-1-25
  *		        V1.1.1创建于2026-4-28, 修复clamp限幅失效的问题
+ *		        V1.2.0创建于2026-6-15, 添加零点设置和重启设备
  * @copyright   (c) 2026 QDrive
  */
 
@@ -46,26 +47,26 @@ void QD4310::nop() const {
 
 void QD4310::setAngle(float _angle) const {
     _angle = std::clamp(_angle, 0.0f, 2 * std::numbers::pi_v<float>); // 限制角度在[0, 2pi]范围内
-    SendCommand(Command::ANGLE, _angle / 2 / std::numbers::pi_v<float> * UINT16_MAX);
+    SendCommand(Command::AngleCtrl, _angle / 2 / std::numbers::pi_v<float> * UINT16_MAX);
 }
 
-void QD4310::setStepAngle(float _step_angle) const {
+void QD4310::setStepAngle(float step_angle_) const {
     // 限制角度在[-2pi, 2pi]范围内
-    _step_angle = std::clamp(_step_angle, -2 * std::numbers::pi_v<float>, 2 * std::numbers::pi_v<float>);
-    SendCommand(Command::STEP_ANGLE, _step_angle / 2 / std::numbers::pi_v<float> * INT16_MAX);
+    step_angle_ = std::clamp(step_angle_, -2 * std::numbers::pi_v<float>, 2 * std::numbers::pi_v<float>);
+    SendCommand(Command::StepAngleCtrl, step_angle_ / 2 / std::numbers::pi_v<float> * INT16_MAX);
 }
 
-void QD4310::setSpeed(float _speed) const {
-    _speed = std::clamp(_speed, -1000.0f, 1000.0f); // 限制速度在[-1000, 1000]范围内
-    SendCommand(Command::SPEED, _speed / 1000 * INT16_MAX);
+void QD4310::setSpeed(float speed_) const {
+    speed_ = std::clamp(speed_, -1000.0f, 1000.0f); // 限制速度在[-1000, 1000]范围内
+    SendCommand(Command::SpeedCtrl, speed_ / 1000 * INT16_MAX);
 }
 
-void QD4310::setLowSpeed(float _speed) const {
-    _speed = std::clamp(_speed, -1000.0f, 1000.0f); // 限制速度在[-1000, 1000]范围内
-    SendCommand(Command::LOW_SPEED, _speed / 1000 * INT16_MAX);
+void QD4310::setLowSpeed(float speed_) const {
+    speed_ = std::clamp(speed_, -1000.0f, 1000.0f); // 限制速度在[-1000, 1000]范围内
+    SendCommand(Command::LowSpeedCtrl, speed_ / 1000 * INT16_MAX);
 }
 
-void QD4310::setCurrent(float _current) const {
-    _current = std::clamp(_current, -10.0f, 10.0f);
-    SendCommand(Command::CURRENT, _current / 10 * INT16_MAX);
+void QD4310::setCurrent(float current_) const {
+    current_ = std::clamp(current_, -10.0f, 10.0f);
+    SendCommand(Command::CurrentCtrl, current_ / 10 * INT16_MAX);
 }
