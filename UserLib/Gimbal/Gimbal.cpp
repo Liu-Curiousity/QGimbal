@@ -182,6 +182,16 @@ void Gimbal::Ctrl_ISR(const gimbal_pair<float> imu_angle_) {
                 pid_angle.yaw.target = target_angle.yaw;
                 pid_angle.pitch.target = target_angle.pitch;
 
+                // 利用C/C++短路机制
+                if (!stability_enabled) {
+                    if ((ctrl_type != CtrlType::LowSpeedCtrl || target_low_speed.yaw == 0) &&
+                        fabsf(target_angle.yaw - angle_.yaw) < std::numbers::pi_v<float> / 32768.0f)
+                        target_angle.yaw = angle_.yaw;
+                    if ((ctrl_type != CtrlType::LowSpeedCtrl || target_low_speed.pitch == 0) &&
+                        fabsf(target_angle.pitch - angle_.pitch) < std::numbers::pi_v<float> / 32768.0f)
+                        target_angle.pitch = angle_.pitch;
+                }
+
                 target_current.yaw = pid_angle.yaw.calc(angle_.yaw);
                 target_current.pitch = pid_angle.pitch.calc(angle_.pitch);
 
