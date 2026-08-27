@@ -83,10 +83,8 @@ public:
      */
     bool setUartBaudRate(uint32_t baud_rate);
 
-private:
-    friend void gimbal_config_list();
-    friend void gimbal_store();
-    friend void gimbal_restore();
+protected:
+    friend class ShellPlugs;
 
     enum StorageStatus:uint8_t {
         STORAGE_NONE = 0b0000'0000,
