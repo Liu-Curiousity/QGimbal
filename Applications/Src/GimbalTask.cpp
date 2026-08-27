@@ -26,6 +26,7 @@ QGimbal qgimbal(
             GIMBAL_SPEED_KP_YAW,
             GIMBAL_SPEED_KI_YAW,
             GIMBAL_SPEED_KD_YAW,
+            1,
             1e3f,
             -1e3f,
             GIMBAL_MAX_CURRENT,
@@ -36,6 +37,7 @@ QGimbal qgimbal(
             GIMBAL_SPEED_KP_PITCH,
             GIMBAL_SPEED_KI_PITCH,
             GIMBAL_SPEED_KD_PITCH,
+            1,
             1e3f,
             -1e3f,
             GIMBAL_MAX_CURRENT,
@@ -48,6 +50,7 @@ QGimbal qgimbal(
             GIMBAL_ANGLE_KP_YAW,
             GIMBAL_ANGLE_KI_YAW,
             GIMBAL_ANGLE_KD_YAW,
+            1,
             1.8f, -1.8f,
             GIMBAL_MAX_CURRENT,
             -GIMBAL_MAX_CURRENT
@@ -57,6 +60,7 @@ QGimbal qgimbal(
             GIMBAL_ANGLE_KP_PITCH,
             GIMBAL_ANGLE_KI_PITCH,
             GIMBAL_ANGLE_KD_PITCH,
+            1,
             1.8f, -1.8f,
             GIMBAL_MAX_CURRENT,
             -GIMBAL_MAX_CURRENT

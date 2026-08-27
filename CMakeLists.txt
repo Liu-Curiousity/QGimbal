@@ -49,6 +49,7 @@ add_subdirectory(UserLib/Gimbal)
 add_subdirectory(UserLib/QGimbal)
 add_subdirectory(UserLib/LetterShell)
 add_subdirectory(UserLib/QD4310)
+add_subdirectory(UserLib/pid)
 add_subdirectory(UserLib/Storage)
 
 # Link directories setup
@@ -68,7 +69,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         # Add user defined include paths
         Applications/Inc
-        UserLib/PID
         BSP
 )
 
@@ -90,6 +90,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         letter_shell
         storage
         storage_embedded
+        pid
 )
 
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD

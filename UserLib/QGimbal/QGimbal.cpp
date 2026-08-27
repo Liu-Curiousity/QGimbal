@@ -30,42 +30,55 @@ void QGimbal::init() {
     load_storage_calibration();
 }
 
-void QGimbal::start() {
+bool QGimbal::start() {
     Gimbal::start();
     if (started) {
         HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+        return true;
     }
+    return false;
 }
 
-void QGimbal::stop() {
+bool QGimbal::stop() {
     Gimbal::stop();
-    HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+    if (!started) {
+        Gimbal::Ctrl(CtrlType::CurrentCtrl, {.yaw = 0, .pitch = 0});
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+        return true;
+    }
+    return false;
 }
 
-void QGimbal::enable_stability() {
+bool QGimbal::enable_stability() {
     Gimbal::enable_stability();
     if (stability_enabled) {
         HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+        return true;
     }
+    return false;
 }
 
-void QGimbal::disable_stability() {
+bool QGimbal::disable_stability() {
     Gimbal::disable_stability();
     if (!stability_enabled) {
         HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+        return true;
     }
+    return false;
 }
 
-void QGimbal::enable_laser() {
+bool QGimbal::enable_laser() {
     HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin, GPIO_PIN_SET);
     laser_enabled = true;
+    return true;
 }
 
-void QGimbal::disable_laser() {
+bool QGimbal::disable_laser() {
     HAL_GPIO_WritePin(Laser_En_GPIO_Port, Laser_En_Pin, GPIO_PIN_RESET);
     laser_enabled = false;
+    return true;
 }
 
 // TODO: 后续添加IMU校准
@@ -188,13 +201,13 @@ void QGimbal::load_storage_calibration() {
     }
     if ((storage_status & STORAGE_LIMIT_OK) == STORAGE_LIMIT_OK) {
         storage.read(0x300, &pid_angle.yaw.output_limit_p, sizeof(pid_angle.yaw.output_limit_p));
-        pid_angle.yaw.output_limit_n = -pid_angle.yaw.output_limit_p;
+        pid_angle.yaw.output_limit_n = -pid_angle.yaw.output_limit_p.value();
         storage.read(0x310, &pid_speed.yaw.output_limit_p, sizeof(pid_speed.yaw.output_limit_p));
-        pid_speed.yaw.output_limit_n = -pid_speed.yaw.output_limit_p;
+        pid_speed.yaw.output_limit_n = -pid_speed.yaw.output_limit_p.value();
         storage.read(0x320, &pid_angle.pitch.output_limit_p, sizeof(pid_angle.pitch.output_limit_p));
-        pid_angle.pitch.output_limit_n = -pid_angle.pitch.output_limit_p;
+        pid_angle.pitch.output_limit_n = -pid_angle.pitch.output_limit_p.value();
         storage.read(0x330, &pid_speed.pitch.output_limit_p, sizeof(pid_speed.pitch.output_limit_p));
-        pid_speed.pitch.output_limit_n = -pid_speed.pitch.output_limit_p;
+        pid_speed.pitch.output_limit_n = -pid_speed.pitch.output_limit_p.value();
     }
     if ((storage_status & STORAGE_PLUG_OK) == STORAGE_PLUG_OK) {
         storage.read(0x400, &uart_baud_rate, sizeof(uart_baud_rate));

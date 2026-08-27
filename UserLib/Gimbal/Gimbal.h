@@ -13,6 +13,8 @@
 #ifndef QGIMBAL_GIMBAL_H
 #define QGIMBAL_GIMBAL_H
 
+#include <numbers>
+
 #include "QD4310.h"
 #include "PID.h"
 
@@ -93,10 +95,10 @@ public:
     void enable();
     void disable();
     void reboot();
-    virtual void start();
-    virtual void stop();
-    virtual void enable_stability();
-    virtual void disable_stability();
+    void start();
+    void stop();
+    void enable_stability();
+    void disable_stability();
     void reset_imu();
 
     /**

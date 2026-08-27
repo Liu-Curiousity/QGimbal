@@ -67,8 +67,11 @@ void Gimbal::start() {
 }
 
 void Gimbal::stop() {
+    pid_speed.yaw.reset();
+    pid_speed.pitch.reset();
+    pid_angle.yaw.reset();
+    pid_angle.pitch.reset();
     started = false;
-    Ctrl(CtrlType::CurrentCtrl, {0, 0});
 }
 
 void Gimbal::reset_imu() {

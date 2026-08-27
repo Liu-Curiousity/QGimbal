@@ -40,12 +40,12 @@ public:
         print_len("  Enabled            : %s", qgimbal.started ? "Yes" : "No");
         print_len("  Stability Enabled  : %s", qgimbal.stability_enabled ? "Yes" : "No");
         print_len("  Laser Enabled      : %s", qgimbal.laser_enabled ? "Yes" : "No");
-        print_len("  CtrlMode           : %s",
-                  qgimbal.getCtrlType() == CtrlType::CurrentCtrl ? "CurrentCtrl" :
-                  qgimbal.getCtrlType() == CtrlType::SpeedCtrl ? "SpeedCtrl" :
-                  qgimbal.getCtrlType() == CtrlType::AngleCtrl ? "AngleCtrl" :
-                  qgimbal.getCtrlType() == CtrlType::StepAngleCtrl ? "StepAngleCtrl" :
-                  qgimbal.getCtrlType() == CtrlType::LowSpeedCtrl ? "LowSpeedCtrl" : "Unknown");
+        print_len("  CtrlMode           : %s ctrl",
+                  qgimbal.getCtrlType() == CtrlType::CurrentCtrl ? CtrlItems[0].name :
+                  qgimbal.getCtrlType() == CtrlType::SpeedCtrl ? CtrlItems[1].name :
+                  qgimbal.getCtrlType() == CtrlType::AngleCtrl ? CtrlItems[2].name :
+                  qgimbal.getCtrlType() == CtrlType::StepAngleCtrl ? CtrlItems[3].name :
+                  qgimbal.getCtrlType() == CtrlType::LowSpeedCtrl ? CtrlItems[4].name : "Unknown");
         print_len("  IMU Angle          : yaw:%.3f rad, pitch:%.3f rad",
                   qgimbal.imu_angle.yaw, qgimbal.imu_angle.pitch);
         print_len("  IMU Speed          : yaw:%.3f rpm, pitch:%.3f rpm",
@@ -60,7 +60,7 @@ public:
     }
 
     static void gimbal_config_help() {
-        print_len("Usage: config [--list | PARAM_PATH VALUE | key=value]");
+        print_len("Usage: config [--list | CONFIG_PARAM VALUE | key=value]");
         print_len("");
         print_len("Examples:");
         print_len("  config pid.speed.kp.yaw 0.1");
@@ -195,7 +195,7 @@ public:
     }
 
     static void gimbal_ctrl_help() {
-        print_len("Usage: ctrl [current Y P | low_speed Y P | speed Y P | step_angle Y P | angle Y P | key=y,p]");
+        print_len("Usage: ctrl [CONFIG_PARAM YAY_VALUE PITCH_VALUE | key=y_value,p_value]");
         print_len("");
         print_len("Examples:");
         print_len("  ctrl %s 100 0", CtrlItems[1].name);
@@ -266,11 +266,11 @@ public:
     }
 
     static void gimbal_enable() {
-        qgimbal.start();
-        if (qgimbal.started) {
+        if (qgimbal.start()) {
             print_len("QGimbal enabled");
-        } else
-            print_len("enable failed, please calibrate first");
+        } else {
+            print_len("Enable failed, unknown error");
+        }
     }
 
     static void gimbal_disable() {
@@ -279,58 +279,66 @@ public:
     }
 
     static void gimbal_enable_stability() {
-        qgimbal.enable_stability();
-        if (qgimbal.stability_enabled) {
+        if (qgimbal.enable_stability()) {
             print_len("QGimbal stability enabled");
         } else {
-            print_len("enable failed");
+            print_len("enable failed, unknown error");
         }
     }
 
     static void gimbal_disable_stability() {
-        qgimbal.disable_stability();
-        print_len("QGimbal stability control disabled");
+        if (qgimbal.disable_stability()) {
+            print_len("QGimbal stability control disabled");
+        } else {
+            print_len("disable failed, unknown error");
+        }
     }
 
     static void gimbal_enable_laser() {
-        qgimbal.enable_laser();
-        if (qgimbal.laser_enabled) {
+        if (qgimbal.enable_laser()) {
             print_len("Laser enabled");
         } else {
-            print_len("enable failed");
+            print_len("enable failed, unknown error");
         }
     }
 
     static void gimbal_disable_laser() {
-        qgimbal.disable_laser();
-        print_len("Laser disabled");
+        if (qgimbal.disable_laser()) {
+            print_len("Laser disabled");
+        } else {
+            print_len("disable failed, unknown error");
+        }
     }
 
     static void gimbal_restore() {
+        if (qgimbal.started) {
+            print_len(PROMPT_DISABLE_FIRST);
+            return;
+        }
         print_len("Are you sure you want to restore factory settings? (y/n)");
         char response;
         while (!shellRead(&response, 1)) {
-            delay_ms(1); // Wait for input
+            delay(1);
         }
         if (response != 'y' && response != 'Y') {
             print_len("Factory restore cancelled");
             return;
         }
         qgimbal.restore_calibration(); // 恢复出厂设置
-        print_len("QGimbal factory restore completed");
+        print_len("Factory restore completed");
         gimbal_config_list();
     }
 
     static void gimbal_store() {
         if (qgimbal.started) {
-            print_len("QGimbal is running, please disable it first");
+            print_len(PROMPT_DISABLE_FIRST);
             return;
         }
         gimbal_config_list();
         print_len("Are you sure you want to store configurations? (y/n)");
         char response;
         while (!shellRead(&response, 1)) {
-            delay_ms(1); // Wait for input
+            delay(1);
         }
         if (response != 'y' && response != 'Y') {
             print_len("Store operation cancelled");
@@ -341,7 +349,7 @@ public:
                                        STORAGE_LIMIT_OK |         // 储存限制参数
                                        STORAGE_PLUG_OK)           // 储存ID
         );
-        print_len("Store configuration completed");
+        print_len("Store operation completed");
     }
 
     static void shell_reboot() {
@@ -422,7 +430,6 @@ private:
         *eq = '\0';
         return eq + 1;
     }
-
 
     class Item {
     public:

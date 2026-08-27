@@ -40,12 +40,12 @@ public:
     float voltage{0.0f};             // 电压,单位V
 
     void init() override;
-    void start() override;
-    void stop() override;
-    void enable_stability() override;
-    void disable_stability() override;
-    void enable_laser();
-    void disable_laser();
+    bool start();
+    bool stop();
+    bool enable_stability();
+    bool disable_stability();
+    bool enable_laser();
+    bool disable_laser();
     // void calibrate();
     void updateVoltage(float voltage);
 
