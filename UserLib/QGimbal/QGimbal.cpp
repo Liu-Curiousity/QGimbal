@@ -82,24 +82,10 @@ void QGimbal::updateVoltage(const float voltage) {
     this->voltage = voltage;
 }
 
-void QGimbal::update_attitude(const gimbal_pair<float> imu_angle) {
-    static gimbal_pair<float> previous_imu_angle = imu_angle;
-    this->motor_angle = {motor.yaw.angle, motor.pitch.angle};
-    this->motor_angle = {
-        wrap(this->motor_angle.yaw - zero_pos.yaw, 0, 2 * numbers::pi),
-        wrap(this->motor_angle.pitch - zero_pos.pitch, 0, 2 * numbers::pi),
-    };
-    this->motor_speed = {motor.yaw.speed, motor.pitch.speed};
-    this->motor_current = {motor.yaw.current, motor.pitch.current};
-    this->imu_angle = {
-        wrap(imu_angle.yaw, 0, 2 * numbers::pi),
-        wrap(imu_angle.pitch + motor_angle.pitch - imu_pitch_zero_pos, 0, 2 * numbers::pi)
-    };
-    this->imu_speed = {
-        wrap((this->imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
-        wrap((this->imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
-    };
-    previous_imu_angle = this->imu_angle;
+void QGimbal::update_attitude(const gimbal_pair<float> imu_angle_raw) {
+    Gimbal::update_attitude(imu_angle_raw);
+    motor_angle = motor_angle - zero_pos;
+    imu_angle = imu_angle - gimbal_pair<float>{.yaw = 0, .pitch = zero_pos.pitch};
 }
 
 bool QGimbal::setPID(const gimbal_pair<float> pid_speed_kp, const gimbal_pair<float> pid_speed_ki,
@@ -262,10 +248,14 @@ void QGimbal::freeze_storage_calibration(const StorageStatus storage_type) {
     if ((storage_type & STORAGE_LIMIT_OK) == STORAGE_LIMIT_OK) {
         // 储存限幅参数
         std::fill_n(storage_buffer, sizeof(storage_buffer), 0);
-        *reinterpret_cast<decltype(pid_angle.yaw.output_limit_p ) *>(&storage_buffer[0x000]) = pid_angle.yaw.output_limit_p;
-        *reinterpret_cast<decltype(pid_speed.yaw.output_limit_p ) *>(&storage_buffer[0x010]) = pid_speed.yaw.output_limit_p;
-        *reinterpret_cast<decltype(pid_angle.pitch.output_limit_p) *>(&storage_buffer[0x020]) = pid_angle.pitch.output_limit_p;
-        *reinterpret_cast<decltype(pid_speed.pitch.output_limit_p) *>(&storage_buffer[0x030]) = pid_speed.pitch.output_limit_p;
+        *reinterpret_cast<decltype(pid_angle.yaw.output_limit_p ) *>(&storage_buffer[0x000]) = pid_angle.yaw.
+            output_limit_p;
+        *reinterpret_cast<decltype(pid_speed.yaw.output_limit_p ) *>(&storage_buffer[0x010]) = pid_speed.yaw.
+            output_limit_p;
+        *reinterpret_cast<decltype(pid_angle.pitch.output_limit_p) *>(&storage_buffer[0x020]) = pid_angle.pitch.
+            output_limit_p;
+        *reinterpret_cast<decltype(pid_speed.pitch.output_limit_p) *>(&storage_buffer[0x030]) = pid_speed.pitch.
+            output_limit_p;
         storage.write(0x300, storage_buffer, 0x040);
     }
     if ((storage_type & STORAGE_PLUG_OK) == STORAGE_PLUG_OK) {

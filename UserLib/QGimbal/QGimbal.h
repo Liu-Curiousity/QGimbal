@@ -39,11 +39,11 @@ public:
     uint32_t uart_baud_rate{115200}; // UART波特率
     float voltage{0.0f};             // 电压,单位V
 
-    void init();
-    void start();
-    void stop();
-    void enable_stability();
-    void disable_stability();
+    void init() override;
+    void start() override;
+    void stop() override;
+    void enable_stability() override;
+    void disable_stability() override;
     void enable_laser();
     void disable_laser();
     // void calibrate();
@@ -110,7 +110,7 @@ private:
     void restore_calibration();
     void load_storage_calibration();
     void freeze_storage_calibration(StorageStatus storage_type);
-    void update_attitude(gimbal_pair<float> imu_angle) override;
+    void update_attitude(gimbal_pair<float> imu_angle_raw) override;
 };
 
 #endif //FOC_QGIMBAL_QGIMBAL_H

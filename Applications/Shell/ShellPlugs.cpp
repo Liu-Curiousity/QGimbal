@@ -86,13 +86,13 @@ void gimbal_status() {
           qgimbal.getCtrlType() == Gimbal::CtrlType::AngleCtrl ? "AngleCtrl" :
           qgimbal.getCtrlType() == Gimbal::CtrlType::StepAngleCtrl ? "StepAngleCtrl" :
           qgimbal.getCtrlType() == Gimbal::CtrlType::LowSpeedCtrl ? "LowSpeedCtrl" : "Unknown");
-    PRINT("  IMU Angle          : yaw:%.2f rad, pitch:%.2f rad", qgimbal.imu_angle.yaw, qgimbal.imu_angle.pitch);
-    PRINT("  IMU Speed          : yaw:%.2f rpm, pitch:%.2f rpm", qgimbal.imu_speed.yaw, qgimbal.imu_speed.pitch);
-    PRINT("  Angle              : yaw:%.2f rad, pitch:%.2f rad", qgimbal.motor_angle.yaw, qgimbal.motor_angle.pitch);
-    PRINT("  Speed              : yaw:%.2f rpm, pitch:%.2f rpm", qgimbal.motor_speed.yaw, qgimbal.motor_speed.pitch);
-    PRINT("  Current            : yaw:%.2f A  , pitch:%.2f A  ", qgimbal.motor_current.yaw,
+    PRINT("  IMU Angle          : yaw:%.3f rad, pitch:%.3f rad", qgimbal.imu_angle.yaw, qgimbal.imu_angle.pitch);
+    PRINT("  IMU Speed          : yaw:%.3f rpm, pitch:%.3f rpm", qgimbal.imu_speed.yaw, qgimbal.imu_speed.pitch);
+    PRINT("  Angle              : yaw:%.3f rad, pitch:%.3f rad", qgimbal.motor_angle.yaw, qgimbal.motor_angle.pitch);
+    PRINT("  Speed              : yaw:%.3f rpm, pitch:%.3f rpm", qgimbal.motor_speed.yaw, qgimbal.motor_speed.pitch);
+    PRINT("  Current            : yaw:%.3f A  , pitch:%.3f A  ", qgimbal.motor_current.yaw,
           qgimbal.motor_current.pitch);
-    PRINT("  Voltage            : %.2f V", qgimbal.voltage);
+    PRINT("  Voltage            : %.3f V", qgimbal.voltage);
 }
 
 void gimbal_config_help() {
@@ -278,19 +278,19 @@ void gimbal_ctrl(int argc, char *argv[]) {
     if (has_val) {
         const Gimbal::gimbal_pair vals = {y_val, p_val};
         if (strcmp(key, "current") == 0) {
-            PRINT("Setting current Y:%.2f P:%.2f A", y_val, p_val);
+            PRINT("Setting current Y:%.3f P:%.3f A", y_val, p_val);
             qgimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl, vals);
         } else if (strcmp(key, "speed") == 0) {
-            PRINT("Setting speed Y:%.2f P:%.2f rpm", y_val, p_val);
+            PRINT("Setting speed Y:%.3f P:%.3f rpm", y_val, p_val);
             qgimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl, vals);
         } else if (strcmp(key, "angle") == 0) {
-            PRINT("Setting angle Y:%.2f P:%.2f rad", y_val, p_val);
+            PRINT("Setting angle Y:%.3f P:%.3f rad", y_val, p_val);
             qgimbal.Ctrl(Gimbal::CtrlType::AngleCtrl, vals);
         } else if (strcmp(key, "step_angle") == 0) {
-            PRINT("Stepping angle Y:%.2f P:%.2f rad", y_val, p_val);
+            PRINT("Stepping angle Y:%.3f P:%.3f rad", y_val, p_val);
             qgimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl, vals);
         } else if (strcmp(key, "low_speed") == 0) {
-            PRINT("Setting low_speed Y:%.2f P:%.2f rpm", y_val, p_val);
+            PRINT("Setting low_speed Y:%.3f P:%.3f rpm", y_val, p_val);
             qgimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl, vals);
         } else {
             PRINT("Unknown ctrl target: %s", key);
@@ -381,7 +381,7 @@ void gimbal_store() {
 }
 
 void shell_reboot() {
-    NVIC_SystemReset();
+    qgimbal.reboot();
 }
 
 SHELL_EXPORT_CMD(

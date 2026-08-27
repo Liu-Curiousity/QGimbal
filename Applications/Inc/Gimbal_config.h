@@ -15,7 +15,7 @@
 #ifndef GIMBAL_CONFIG_H
 #define GIMBAL_CONFIG_H
 
-#define GIMBAL_SOFTWARE_VERSION "2.0.3"
+#define GIMBAL_SOFTWARE_VERSION "2.0.4"
 
 /*==========================云台参数==========================*/
 #define GIMBAL_MAX_CURRENT      1.65f   // 最大电流,单位A

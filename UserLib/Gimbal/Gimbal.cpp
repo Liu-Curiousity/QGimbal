@@ -9,19 +9,22 @@ float Gimbal::wrap(float value, const float min, const float max) {
     return value < 0 ? value + max : value + min;
 }
 
-void Gimbal::update_attitude(const gimbal_pair<float> imu_angle) {
-    static gimbal_pair<float> previous_imu_angle = imu_angle;
+void Gimbal::update_attitude(const gimbal_pair<float> imu_angle_raw) {
+    static gimbal_pair<float> previous_imu_angle_raw = imu_angle_raw;
+    static gimbal_pair<float> previous_imu_angle = imu_angle_raw;
     this->motor_angle = {motor.yaw.angle, motor.pitch.angle};
     this->motor_speed = {motor.yaw.speed, motor.pitch.speed};
     this->motor_current = {motor.yaw.current, motor.pitch.current};
     this->imu_angle = {
-        wrap(imu_angle.yaw, 0, 2 * std::numbers::pi),
-        wrap(imu_angle.pitch + motor_angle.pitch - imu_pitch_zero_pos, 0, 2 * std::numbers::pi)
+        wrap(imu_angle_raw.yaw, 0, 2 * std::numbers::pi),
+        wrap(imu_angle_raw.pitch + motor_angle.pitch - imu_pitch_zero_pos, 0, 2 * std::numbers::pi)
     };
     this->imu_speed = {
         wrap((this->imu_angle - previous_imu_angle).yaw) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f,
-        wrap((this->imu_angle - previous_imu_angle).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f
+        wrap((imu_angle_raw - previous_imu_angle_raw).pitch) / Ts * 60.0f * std::numbers::inv_pi_v<float> * 0.5f +
+        motor_speed.pitch
     };
+    previous_imu_angle_raw = imu_angle_raw;
     previous_imu_angle = this->imu_angle;
 }
 
@@ -50,6 +53,13 @@ void Gimbal::disable() {
         disable_stability();
         enabled = false;
     }
+}
+
+void Gimbal::reboot() {
+    disable();
+    motor.yaw.reboot();
+    motor.pitch.reboot();
+    NVIC_SystemReset();
 }
 
 void Gimbal::start() {

@@ -18,6 +18,8 @@
 
 class Gimbal {
 public:
+    virtual ~Gimbal() = default;
+
     enum class CtrlType {
         CurrentCtrl = 0,
         SpeedCtrl = 1,
@@ -87,13 +89,14 @@ public:
     gimbal_pair<float> motor_current{0, 0}; // 单位:A
 
     [[nodiscard]] CtrlType getCtrlType() const { return ctrl_type; } // 获取控制模式
-    void init();
+    virtual void init();
     void enable();
     void disable();
-    void start();
-    void stop();
-    void enable_stability();
-    void disable_stability();
+    void reboot();
+    virtual void start();
+    virtual void stop();
+    virtual void enable_stability();
+    virtual void disable_stability();
     void reset_imu();
 
     /**
@@ -120,7 +123,7 @@ protected:
                       float min = -std::numbers::pi_v<float>,
                       float max = std::numbers::pi_v<float>);
 
-    virtual void update_attitude(gimbal_pair<float> imu_angle);
+    virtual void update_attitude(gimbal_pair<float> imu_angle_raw);
 
 private:
     CtrlType ctrl_type{CtrlType::CurrentCtrl}; // 当前控制类型
