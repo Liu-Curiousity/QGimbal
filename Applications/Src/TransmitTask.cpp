@@ -73,19 +73,19 @@ void StartCommunicateTask(void *argument) {
                 qgimbal.stop();
                 break;
             case CmdType::CurrentCtrl: // 电流控制
-                qgimbal.Ctrl(Gimbal::CtrlType::CurrentCtrl, rx_package.data);
+                qgimbal.Ctrl({.type = Gimbal::CtrlType::CurrentCtrl, .value = rx_package.data});
                 break;
             case CmdType::SpeedCtrl: // 速度控制
-                qgimbal.Ctrl(Gimbal::CtrlType::SpeedCtrl, rx_package.data);
+                qgimbal.Ctrl({.type = Gimbal::CtrlType::SpeedCtrl, .value = rx_package.data});
                 break;
             case CmdType::AngleCtrl: // 角度控制
-                qgimbal.Ctrl(Gimbal::CtrlType::AngleCtrl, rx_package.data);
+                qgimbal.Ctrl({.type = Gimbal::CtrlType::AngleCtrl, .value = rx_package.data});
                 break;
             case CmdType::LowSpeedCtrl: // 低速控制
-                qgimbal.Ctrl(Gimbal::CtrlType::LowSpeedCtrl, rx_package.data);
+                qgimbal.Ctrl({.type = Gimbal::CtrlType::LowSpeedCtrl, .value = rx_package.data});
                 break;
             case CmdType::StepAngleCtrl: // 角度递增
-                qgimbal.Ctrl(Gimbal::CtrlType::StepAngleCtrl, rx_package.data);
+                qgimbal.Ctrl({.type = Gimbal::CtrlType::StepAngleCtrl, .value = rx_package.data});
                 break;
             case CmdType::EnableStability: // 使能自稳
                 qgimbal.enable_stability();

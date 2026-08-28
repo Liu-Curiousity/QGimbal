@@ -43,7 +43,7 @@ bool QGimbal::start() {
 bool QGimbal::stop() {
     Gimbal::stop();
     if (!started) {
-        Gimbal::Ctrl(CtrlType::CurrentCtrl, {.yaw = 0, .pitch = 0});
+        Gimbal::Ctrl({.type = CtrlType::CurrentCtrl, .value = {.yaw = 0, .pitch = 0}});
         HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
         return true;
@@ -67,6 +67,12 @@ bool QGimbal::disable_stability() {
         return true;
     }
     return false;
+}
+
+bool QGimbal::Ctrl(const CtrlType& ctrl_type) {
+    if (!started) return false;
+    Gimbal::Ctrl(ctrl_type);
+    return true;
 }
 
 bool QGimbal::enable_laser() {
@@ -137,8 +143,8 @@ bool QGimbal::setLimit(const gimbal_pair<float> current_limit) {
 
 bool QGimbal::setZeroPosition(const gimbal_pair<float> position) {
     zero_pos = {
-        wrap((zero_pos + position).yaw, 0, 2 * numbers::pi_v<float>),
-        wrap((zero_pos + position).pitch, 0, 2 * numbers::pi_v<float>)
+        .yaw = wrap((zero_pos + position).yaw, 0, 2 * numbers::pi_v<float>),
+        .pitch = wrap((zero_pos + position).pitch, 0, 2 * numbers::pi_v<float>)
     };
     freeze_storage_calibration(STORAGE_ZERO_POS_OK);
     return true;

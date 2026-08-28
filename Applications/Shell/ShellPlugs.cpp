@@ -41,11 +41,11 @@ public:
         print_len("  Stability Enabled  : %s", qgimbal.stability_enabled ? "Yes" : "No");
         print_len("  Laser Enabled      : %s", qgimbal.laser_enabled ? "Yes" : "No");
         print_len("  CtrlMode           : %s ctrl",
-                  qgimbal.getCtrlType() == CtrlType::CurrentCtrl ? CtrlItems[0].name :
-                  qgimbal.getCtrlType() == CtrlType::SpeedCtrl ? CtrlItems[1].name :
-                  qgimbal.getCtrlType() == CtrlType::AngleCtrl ? CtrlItems[2].name :
-                  qgimbal.getCtrlType() == CtrlType::StepAngleCtrl ? CtrlItems[3].name :
-                  qgimbal.getCtrlType() == CtrlType::LowSpeedCtrl ? CtrlItems[4].name : "Unknown");
+                  qgimbal.getCtrlType().type == CtrlType::CurrentCtrl ? CtrlItems[0].name :
+                  qgimbal.getCtrlType().type == CtrlType::SpeedCtrl ? CtrlItems[1].name :
+                  qgimbal.getCtrlType().type == CtrlType::AngleCtrl ? CtrlItems[2].name :
+                  qgimbal.getCtrlType().type == CtrlType::StepAngleCtrl ? CtrlItems[3].name :
+                  qgimbal.getCtrlType().type == CtrlType::LowSpeedCtrl ? CtrlItems[4].name : "Unknown");
         print_len("  IMU Angle          : yaw:%.3f rad, pitch:%.3f rad",
                   qgimbal.imu_angle.yaw, qgimbal.imu_angle.pitch);
         print_len("  IMU Speed          : yaw:%.3f rpm, pitch:%.3f rpm",
@@ -96,8 +96,8 @@ public:
         print_len("pid.angle.ki.pitch = %.3g", qgimbal.pid_angle.pitch.ki);
         print_len("pid.angle.kd.pitch = %.3g", qgimbal.pid_angle.pitch.kd);
 
-        print_len("limit.current.yaw = %.3g A", qgimbal.pid_speed.yaw.output_limit_p);
-        print_len("limit.current.pitch = %.3g A", qgimbal.pid_speed.pitch.output_limit_p);
+        print_len("limit.current.yaw = %.3g A", qgimbal.pid_speed.yaw.output_limit_p.value());
+        print_len("limit.current.pitch = %.3g A", qgimbal.pid_speed.pitch.output_limit_p.value());
 
         print_len("uart.baud_rate = %u", qgimbal.uart_baud_rate);
     }
@@ -214,6 +214,11 @@ public:
             return;
         }
 
+        if (!qgimbal.started) {
+            print_len(PROMPT_ENABLE_FIRST);
+            return;
+        }
+
         const char *key = argv[1];
         float y_val = 0;
         float p_val = 0;
@@ -240,22 +245,22 @@ public:
         }
 
         if (has_val) {
-            const gimbal_pair vals = {y_val, p_val};
+            const gimbal_pair vals = {.yaw = y_val, .pitch = p_val};
             if (strcmp(key, "current") == 0) {
                 print_len("Setting current Y:%.3f P:%.3f A", y_val, p_val);
-                qgimbal.Ctrl(CtrlType::CurrentCtrl, vals);
+                qgimbal.Ctrl({.type = CtrlType::CurrentCtrl, .value = vals});
             } else if (strcmp(key, "speed") == 0) {
                 print_len("Setting speed Y:%.3f P:%.3f rpm", y_val, p_val);
-                qgimbal.Ctrl(CtrlType::SpeedCtrl, vals);
+                qgimbal.Ctrl({.type = CtrlType::SpeedCtrl, .value = vals});
             } else if (strcmp(key, "angle") == 0) {
                 print_len("Setting angle Y:%.3f P:%.3f rad", y_val, p_val);
-                qgimbal.Ctrl(CtrlType::AngleCtrl, vals);
+                qgimbal.Ctrl({.type = CtrlType::AngleCtrl, .value = vals});
             } else if (strcmp(key, "step_angle") == 0) {
                 print_len("Stepping angle Y:%.3f P:%.3f rad", y_val, p_val);
-                qgimbal.Ctrl(CtrlType::StepAngleCtrl, vals);
+                qgimbal.Ctrl({.type = CtrlType::StepAngleCtrl, .value = vals});
             } else if (strcmp(key, "low_speed") == 0) {
                 print_len("Setting low_speed Y:%.3f P:%.3f rpm", y_val, p_val);
-                qgimbal.Ctrl(CtrlType::LowSpeedCtrl, vals);
+                qgimbal.Ctrl({.type = CtrlType::LowSpeedCtrl, .value = vals});
             } else {
                 print_len("Unknown ctrl target: %s", key);
                 gimbal_ctrl_help();
@@ -606,7 +611,7 @@ private:
             "current", "Set current", "A", "%.3g",
             nullptr,
             [](const gimbal_pair<float> value) {
-                qgimbal.Ctrl(CtrlType::CurrentCtrl, value);
+                qgimbal.Ctrl({.type = CtrlType::CurrentCtrl, .value = value});
                 return true;
             }
         },
@@ -614,7 +619,7 @@ private:
             "speed", "Set speed", "rpm", "%.3g",
             nullptr,
             [](const gimbal_pair<float> value) {
-                qgimbal.Ctrl(CtrlType::SpeedCtrl, value);
+                qgimbal.Ctrl({.type = CtrlType::SpeedCtrl, .value = value});
                 return true;
             }
         },
@@ -622,7 +627,7 @@ private:
             "angle", "Set angle", "rad", "%.3g",
             nullptr,
             [](const gimbal_pair<float> value) {
-                qgimbal.Ctrl(CtrlType::AngleCtrl, value);
+                qgimbal.Ctrl({.type = CtrlType::AngleCtrl, .value = value});
                 return true;
             }
         },
@@ -630,7 +635,7 @@ private:
             "step_angle", "Step an specific angle", "rad", "%.3g",
             nullptr,
             [](const gimbal_pair<float> value) {
-                qgimbal.Ctrl(CtrlType::StepAngleCtrl, value);
+                qgimbal.Ctrl({.type = CtrlType::StepAngleCtrl, .value = value});
                 return true;
             }
         },
@@ -638,7 +643,7 @@ private:
             "low_speed", "Set speed by increasing angle", "rpm", "%.3g",
             nullptr,
             [](const gimbal_pair<float> value) {
-                qgimbal.Ctrl(CtrlType::LowSpeedCtrl, value);
+                qgimbal.Ctrl({.type = CtrlType::LowSpeedCtrl, .value = value});
                 return true;
             }
         },

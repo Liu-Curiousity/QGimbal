@@ -48,6 +48,7 @@ public:
     bool disable_laser();
     // void calibrate();
     void updateVoltage(float voltage);
+    bool Ctrl(const CtrlType& ctrl_type);
 
     /**
      * @brief 设置PID参数
@@ -102,8 +103,8 @@ protected:
 
     static constexpr uint8_t STORAGE_MAGIC = 0xAA; // 存储器魔术字,储存在0x000
 
-    Storage& storage;                  //存储器
-    gimbal_pair<float> zero_pos{0, 0}; // 云台零点,单位:rad
+    Storage& storage;                                  //存储器
+    gimbal_pair<float> zero_pos{.yaw = 0, .pitch = 0}; // 云台零点,单位:rad
 
     void restore_calibration();
     void load_storage_calibration();
